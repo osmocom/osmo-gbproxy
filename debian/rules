@@ -46,7 +46,7 @@
 
 # debmake generated override targets
 # Set options for ./configure
-CONFIGURE_FLAGS += --enable-iu --with-systemdsystemunitdir=/lib/systemd/system --enable-manuals
+CONFIGURE_FLAGS += --with-systemdsystemunitdir=/lib/systemd/system --enable-manuals
 override_dh_auto_configure:
 	dh_auto_configure -- $(CONFIGURE_FLAGS)
 #
@@ -56,8 +56,6 @@ override_dh_auto_configure:
 
 # See https://www.debian.org/doc/manuals/developers-reference/best-pkging-practices.html#bpp-dbg
 override_dh_strip:
-	dh_strip -posmo-sgsn --dbg-package=osmo-sgsn-dbg
-	dh_strip -posmo-gtphub --dbg-package=osmo-gtphub-dbg
 	dh_strip -posmo-gbproxy --dbg-package=osmo-gbproxy-dbg
 
 # Print test results in case of a failure

@@ -19,7 +19,7 @@ SUBDIRS = \
 BUILT_SOURCES = $(top_srcdir)/.version
 EXTRA_DIST = \
 	     .version \
-	     contrib/osmo-sgsn.spec.in \
+	     contrib/osmo-gbproxy.spec.in \
 	     debian \
 	     git-version-gen \
 	     osmoappdesc.py \

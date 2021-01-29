@@ -37,13 +37,13 @@
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
 #include <osmocom/core/stats.h>
+#include <osmocom/core/signal.h>
 
 #include <osmocom/gprs/gprs_ns2.h>
 #include <osmocom/gprs/gprs_bssgp.h>
 
-#include <osmocom/sgsn/signal.h>
-#include <osmocom/sgsn/debug.h>
-#include <osmocom/sgsn/vty.h>
+#include "debug.h"
+#include "vty.h"
 #include <osmocom/sgsn/gb_proxy.h>
 
 #include <osmocom/ctrl/control_vty.h>
@@ -57,7 +57,7 @@
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/misc.h>
 
-#include "../../bscconfig.h"
+#include "../bscconfig.h"
 
 #define _GNU_SOURCE
 #include <getopt.h>

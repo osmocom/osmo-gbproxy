@@ -1,11 +1,4 @@
 SUBDIRS = \
-	gprs \
-	gtphub \
-	sgsn \
-	xid \
-	sndcp_xid \
-	slhc \
-	v42bis \
 	$(NULL)
 
 # The `:;' works around a Bash 3.2 bug when the output is not writeable.
@@ -32,7 +25,6 @@ EXTRA_DIST = \
 	$(TESTSUITE) \
 	vty_test_runner.py \
 	ctrl_test_runner.py \
-	osmo-sgsn_test-nodes.vty \
 	osmo-gbproxy_test-nodes.vty \
 	osmo-gbproxy-pool_test-nodes.vty \
 	$(NULL)
@@ -70,10 +62,6 @@ vty-transcript-test:
 		-n OsmoGbProxy -p 4246 \
 		-r "$(top_builddir)/src/gbproxy/osmo-gbproxy -c $(top_srcdir)/doc/examples/osmo-gbproxy/osmo-gbproxy-pool.cfg" \
 		$(U) $${T:-$(srcdir)/osmo-gbproxy-pool_test-nodes.vty}
-	osmo_verify_transcript_vty.py -v \
-		-n OsmoSGSN -p 4245 \
-		-r "$(top_builddir)/src/sgsn/osmo-sgsn -c $(top_srcdir)/doc/examples/osmo-sgsn/osmo-sgsn.cfg" \
-		$(U) $${T:-$(srcdir)/osmo-sgsn*.vty}
 	rm -f $(builddir)/sms.db $(builddir)/gsn_restart
 
 # don't run multiple tests concurrently so that the ports don't conflict

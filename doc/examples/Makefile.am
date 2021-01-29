@@ -1,6 +1,4 @@
 OSMOCONF_FILES = \
-	osmo-gtphub/osmo-gtphub.cfg \
-	osmo-sgsn/osmo-sgsn.cfg \
 	osmo-gbproxy/osmo-gbproxy.cfg
 
 osmoconfdir = $(sysconfdir)/osmocom

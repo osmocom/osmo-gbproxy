@@ -1,4 +1,4 @@
-Source: osmo-sgsn
+Source: osmo-gbproxy
 Section: net
 Priority: extra
 Maintainer: Osmocom team <openbsc@lists.osmocom.org>
@@ -12,46 +12,12 @@ Build-Depends: debhelper (>=9),
                pkg-config,
                libtalloc-dev,
                libc-ares-dev,
-               libgtp-dev (>= 1.5.0),
                libosmocore-dev (>= 1.4.0),
-               libosmo-abis-dev (>= 0.6.0),
-               libosmo-netif-dev (>= 0.4.0),
-               libosmo-gsup-client-dev (>= 1.0.0),
-               libasn1c-dev (>= 0.9.30),
-               libosmo-ranap-dev (>= 0.6.0),
-               libosmo-sigtran-dev (>= 1.0.0),
-               libosmo-sccp-dev (>= 1.0.0),
                osmo-gsm-manuals-dev
 Standards-Version: 3.9.8
-Vcs-Git: git://git.osmocom.org/osmo-sgsn.git
-Vcs-Browser: https://git.osmocom.org/osmo-sgsn
-Homepage: https://projects.osmocom.org/projects/osmo-sgsn
-
-
-Package: osmo-sgsn
-Architecture: any
-Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: OsmoSGSN: Osmocom's Serving GPRS Support Node for 2G and 3G packet-switched mobile networks
-
-Package: osmo-sgsn-dbg
-Section: debug
-Architecture: any
-Multi-Arch: same
-Depends: osmo-sgsn (= ${binary:Version}), ${misc:Depends}
-Description: OsmoSGSN: Osmocom's Serving GPRS Support Node for 2G and 3G packet-switched mobile networks
-
-Package: osmo-gtphub
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Osmocom GTP Hub: Proxy for GTP traffic between multiple SGSNs and GGSNs
-
-Package: osmo-gtphub-dbg
-Architecture: any
-Section: debug
-Priority: extra
-Depends: osmo-gtphub (= ${binary:Version}), ${misc:Depends}
-Description: Debug symbols for Osmocom GTP Hub
+Vcs-Git: git://git.osmocom.org/osmo-gbproxy.git
+Vcs-Browser: https://git.osmocom.org/osmo-gbproxy
+Homepage: https://projects.osmocom.org/projects/osmo-gbproxy
 
 Package: osmo-gbproxy
 Architecture: any
@@ -69,7 +35,7 @@ Priority: extra
 Depends: osmo-gbproxy (= ${binary:Version}), ${misc:Depends}
 Description: Debug symbols for Osmocom GPRS Gb Interface Proxy
 
-Package: osmo-sgsn-doc
+Package: osmo-gbproxy-doc
 Architecture: all
 Section: doc
 Priority: optional

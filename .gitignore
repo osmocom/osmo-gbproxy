@@ -39,10 +39,7 @@ ltmain.sh
 
 
 # apps and app data
-src/sgsn/osmo-sgsn
-src/gbproxy/osmo-gbproxy
-src/gtphub/osmo-gtphub
-src/libcommon/gsup_test_client
+src/osmo-gbproxy
 
 #tests
 tests/testsuite.dir
@@ -70,4 +67,11 @@ doc/manuals/osmomsc-usermanual.xml
 doc/manuals/common
 doc/manuals/build
 
-contrib/osmo-sgsn.spec
+contrib/osmo-gbproxy.spec
+
+# dpkg-buildpackage
+/debian/.debhelper/
+/debian/autoreconf.after
+/debian/autoreconf.before
+/debian/osmo-gbproxy
+/debian/tmp/

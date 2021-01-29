@@ -37,6 +37,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
+#include <osmocom/core/signal.h> 
 #include <osmocom/core/stats.h>
 #include <osmocom/core/utils.h>
 
@@ -49,14 +50,10 @@
 #include <osmocom/gsm/gsm23236.h>
 #include <osmocom/gsm/gsm_utils.h>
 
-#include <osmocom/sgsn/signal.h>
-#include <osmocom/sgsn/debug.h>
-#include <osmocom/sgsn/gprs_gb_parse.h>
+#include "debug.h"
 #include <osmocom/sgsn/gb_proxy.h>
 
-#include <osmocom/sgsn/gprs_llc.h>
 #include <osmocom/gsm/protocol/gsm_04_08_gprs.h>
-#include <osmocom/sgsn/gprs_utils.h>
 
 extern void *tall_sgsn_ctx;
 

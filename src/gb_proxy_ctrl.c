@@ -29,7 +29,8 @@
 #include <osmocom/ctrl/control_if.h>
 #include <osmocom/ctrl/control_cmd.h>
 #include <osmocom/sgsn/gb_proxy.h>
-#include <osmocom/sgsn/debug.h>
+
+#include "debug.h"
 
 extern vector ctrl_node_vec;
 

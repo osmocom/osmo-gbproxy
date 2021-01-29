@@ -38,10 +38,9 @@
 #include <osmocom/gsm/gsm23236.h>
 #include <osmocom/gsm/gsm48.h>
 
-#include <osmocom/sgsn/debug.h>
+#include "debug.h"
 #include <osmocom/sgsn/gb_proxy.h>
-#include <osmocom/sgsn/gprs_utils.h>
-#include <osmocom/sgsn/vty.h>
+#include "vty.h"
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/logging.h>

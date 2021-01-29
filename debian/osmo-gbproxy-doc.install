@@ -1,0 +1,2 @@
+# FIXME: debian package doesn't generate manuals yet, see OS#4992
+# usr/share/doc/osmo-gbproxy-doc/*.pdf
