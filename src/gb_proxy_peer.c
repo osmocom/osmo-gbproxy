@@ -194,18 +194,6 @@ struct gbproxy_cell *gbproxy_cell_by_bvci(struct gbproxy_config *cfg, uint16_t b
 	return NULL;
 }
 
-struct gbproxy_cell *gbproxy_cell_by_bvci_or_new(struct gbproxy_config *cfg, uint16_t bvci)
-{
-	struct gbproxy_cell *cell;
-	OSMO_ASSERT(cfg);
-
-	cell = gbproxy_cell_by_bvci(cfg, bvci);
-	if (!cell)
-		cell = gbproxy_cell_alloc(cfg, bvci);
-
-	return cell;
-}
-
 struct gbproxy_cell *gbproxy_cell_by_cellid(struct gbproxy_config *cfg, const struct gprs_ra_id *raid, uint16_t cid)
 {
 	int i;
