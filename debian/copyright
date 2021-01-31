@@ -7,7 +7,7 @@ Files:     .gitignore
            .mailmap
            AUTHORS
            Makefile.am
-           README
+           README.md
            README.vty-tests
            configure.ac
            contrib/Makefile.am

@@ -68,7 +68,7 @@ make %{?_smp_mflags}
 make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 
 %files
-%doc AUTHORS README
+%doc AUTHORS README.md
 %dir %{_docdir}/%{name}/examples
 %dir %{_docdir}/%{name}/examples/osmo-sgsn
 %{_docdir}/%{name}/examples/osmo-sgsn/osmo-gbproxy.cfg
