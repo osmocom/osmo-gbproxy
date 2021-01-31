@@ -7,9 +7,25 @@
         <param name='help' doc='Description of the interactive help system' />
       </params>
     </command>
-    <command id='list'>
+    <command id='list [with-flags]'>
       <params>
         <param name='list' doc='Print command list' />
+        <param name='[with-flags]' doc='Also print the VTY attribute flags' />
+      </params>
+    </command>
+    <command id='show vty-attributes'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='vty-attributes' doc='List of VTY attributes' />
+      </params>
+    </command>
+    <command id='show vty-attributes (application|library|global)'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='vty-attributes' doc='List of VTY attributes' />
+        <param name='application' doc='Application specific attributes only' />
+        <param name='library' doc='Library specific attributes only' />
+        <param name='global' doc='Global attributes only' />
       </params>
     </command>
     <command id='write terminal'>
@@ -67,9 +83,10 @@
         <param name='online-help' doc='Online help' />
       </params>
     </command>
-    <command id='enable'>
+    <command id='enable [expert-mode]'>
       <params>
         <param name='enable' doc='Turn on privileged mode command' />
+        <param name='[expert-mode]' doc='Enable the expert mode (show hidden commands)' />
       </params>
     </command>
     <command id='terminal length &lt;0-512&gt;'>
@@ -188,13 +205,13 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging level (|gprs|ns|bssgp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
+    <command id='logging level (|gprs|ns|obj|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro|lns|lbssgp) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='gprs' doc='GPRS Packet Service' />
         <param name='ns' doc='GPRS Network Service (NS)' />
-        <param name='bssgp' doc='GPRS BSS Gateway Protocol (BSSGP)' />
+        <param name='obj' doc='GbProxy object allocation/release' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -214,6 +231,8 @@
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
         <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='lns' doc='GPRS NS layer' />
+        <param name='lbssgp' doc='GPRS BSSGP layer' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -253,12 +272,12 @@
         <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
-    <command id='logp (|gprs|ns|bssgp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal) .LOGMESSAGE'>
+    <command id='logp (|gprs|ns|obj|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro|lns|lbssgp) (debug|info|notice|error|fatal) .LOGMESSAGE'>
       <params>
         <param name='logp' doc='Print a message on all log outputs; useful for placing markers in test logs' />
         <param name='gprs' doc='GPRS Packet Service' />
         <param name='ns' doc='GPRS Network Service (NS)' />
-        <param name='bssgp' doc='GPRS BSS Gateway Protocol (BSSGP)' />
+        <param name='obj' doc='GbProxy object allocation/release' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -278,6 +297,8 @@
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
         <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='lns' doc='GPRS NS layer' />
+        <param name='lbssgp' doc='GPRS BSSGP layer' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -365,10 +386,49 @@
         <param name='rate-counters' doc='Show all rate counters' />
       </params>
     </command>
-    <command id='show gbproxy [stats]'>
+    <command id='show fsm NAME'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm' doc='Show information about finite state machines' />
+        <param name='NAME' doc='Display information about a single named finite state machine' />
+      </params>
+    </command>
+    <command id='show fsm all'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm' doc='Show information about finite state machines' />
+        <param name='all' doc='Display a list of all registered finite state machines' />
+      </params>
+    </command>
+    <command id='show fsm-instances NAME'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm-instances' doc='Show information about finite state machine instances' />
+        <param name='NAME' doc='Display a list of all FSM instances of the named finite state machine' />
+      </params>
+    </command>
+    <command id='show fsm-instances all'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm-instances' doc='Show information about finite state machine instances' />
+        <param name='all' doc='Display a list of all FSM instances of all finite state machine' />
+      </params>
+    </command>
+    <command id='show gbproxy bvc (bss|sgsn) [stats]'>
       <params>
         <param name='show' doc='Show running system information' />
         <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='bvc' doc='Show BSSGP Virtual Connections' />
+        <param name='bss' doc='Display BSS-side BVCs' />
+        <param name='sgsn' doc='Display SGSN-side BVCs' />
+        <param name='[stats]' doc='Show statistics' />
+      </params>
+    </command>
+    <command id='show gbproxy cell [stats]'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='cell' doc='Show GPRS Cell Information' />
         <param name='[stats]' doc='Show statistics' />
       </params>
     </command>
@@ -379,43 +439,41 @@
         <param name='links' doc='Show logical links' />
       </params>
     </command>
-    <command id='show ns'>
+    <command id='show gbproxy tlli-cache'>
       <params>
         <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
+        <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='tlli-cache' doc='Show TLLI cache entries' />
       </params>
     </command>
-    <command id='show ns stats'>
+    <command id='show gbproxy imsi-cache'>
       <params>
         <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-        <param name='stats' doc='Include statistics' />
+        <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='imsi-cache' doc='Show IMSI cache entries' />
       </params>
     </command>
-    <command id='show ns persistent'>
+    <command id='show nri all'>
       <params>
         <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-        <param name='persistent' doc='Show only persistent NS' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='all' doc='Show all SGSNs' />
       </params>
     </command>
-    <command id='show ns (nsei|nsvc) &lt;0-65535&gt; [stats]'>
+    <command id='show nri nsei &lt;0-65535&gt;'>
       <params>
         <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-        <param name='nsei' doc='Select one NSE by its NSE Identifier' />
-        <param name='nsvc' doc='Select one NSE by its NS-VC Identifier' />
-        <param name='&lt;0-65535&gt;' doc='The Identifier of selected type' />
-        <param name='[stats]' doc='Include Statistics' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='nsei' doc='Identify SGSN by NSEI' />
+        <param name='&lt;0-65535&gt;' doc='NSEI of the SGSN' />
       </params>
     </command>
-    <command id='logging filter nsvc (nsei|nsvci) &lt;0-65535&gt;'>
+    <command id='logging filter bvc bvci &lt;0-65535&gt;'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='filter' doc='Filter log messages' />
-        <param name='nsvc' doc='Filter based on NS Virtual Connection' />
-        <param name='nsei' doc='Identify NS-VC by NSEI' />
-        <param name='nsvci' doc='Identify NS-VC by NSVCI' />
+        <param name='bvc' doc='Filter based on BSSGP VC' />
+        <param name='bvci' doc='Identify BVC by BVCI' />
         <param name='&lt;0-65535&gt;' doc='Numeric identifier' />
       </params>
     </command>
@@ -587,13 +645,13 @@
         <param name='MASK' doc='List of logging categories to log, e.g. &apos;abc:mno:xyz&apos;. Available log categories depend on the specific application, refer to the &apos;logging level&apos; command. Optionally add individual log levels like &apos;abc,1:mno,3:xyz,5&apos;, where the level numbers are LOGL_DEBUG=1 LOGL_INFO=3 LOGL_NOTICE=5 LOGL_ERROR=7 LOGL_FATAL=8' />
       </params>
     </command>
-    <command id='logging level (|gprs|ns|bssgp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
+    <command id='logging level (|gprs|ns|obj|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro|lns|lbssgp) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='gprs' doc='GPRS Packet Service' />
         <param name='ns' doc='GPRS Network Service (NS)' />
-        <param name='bssgp' doc='GPRS BSS Gateway Protocol (BSSGP)' />
+        <param name='obj' doc='GbProxy object allocation/release' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -613,6 +671,8 @@
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
         <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='lns' doc='GPRS NS layer' />
+        <param name='lbssgp' doc='GPRS BSSGP layer' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -652,12 +712,12 @@
         <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
       </params>
     </command>
-    <command id='logp (|gprs|ns|bssgp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal) .LOGMESSAGE'>
+    <command id='logp (|gprs|ns|obj|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro|lns|lbssgp) (debug|info|notice|error|fatal) .LOGMESSAGE'>
       <params>
         <param name='logp' doc='Print a message on all log outputs; useful for placing markers in test logs' />
         <param name='gprs' doc='GPRS Packet Service' />
         <param name='ns' doc='GPRS Network Service (NS)' />
-        <param name='bssgp' doc='GPRS BSS Gateway Protocol (BSSGP)' />
+        <param name='obj' doc='GbProxy object allocation/release' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -677,6 +737,8 @@
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
         <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='lns' doc='GPRS NS layer' />
+        <param name='lbssgp' doc='GPRS BSSGP layer' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -764,10 +826,61 @@
         <param name='rate-counters' doc='Show all rate counters' />
       </params>
     </command>
-    <command id='show gbproxy [stats]'>
+    <command id='stats report'>
+      <params>
+        <param name='stats' doc='Stats related commands' />
+        <param name='report' doc='Manurally trigger reporting of stats' />
+      </params>
+    </command>
+    <command id='stats reset'>
+      <params>
+        <param name='stats' doc='Stats related commands' />
+        <param name='reset' doc='Reset all stats' />
+      </params>
+    </command>
+    <command id='show fsm NAME'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm' doc='Show information about finite state machines' />
+        <param name='NAME' doc='Display information about a single named finite state machine' />
+      </params>
+    </command>
+    <command id='show fsm all'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm' doc='Show information about finite state machines' />
+        <param name='all' doc='Display a list of all registered finite state machines' />
+      </params>
+    </command>
+    <command id='show fsm-instances NAME'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm-instances' doc='Show information about finite state machine instances' />
+        <param name='NAME' doc='Display a list of all FSM instances of the named finite state machine' />
+      </params>
+    </command>
+    <command id='show fsm-instances all'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='fsm-instances' doc='Show information about finite state machine instances' />
+        <param name='all' doc='Display a list of all FSM instances of all finite state machine' />
+      </params>
+    </command>
+    <command id='show gbproxy bvc (bss|sgsn) [stats]'>
       <params>
         <param name='show' doc='Show running system information' />
         <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='bvc' doc='Show BSSGP Virtual Connections' />
+        <param name='bss' doc='Display BSS-side BVCs' />
+        <param name='sgsn' doc='Display SGSN-side BVCs' />
+        <param name='[stats]' doc='Show statistics' />
+      </params>
+    </command>
+    <command id='show gbproxy cell [stats]'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='cell' doc='Show GPRS Cell Information' />
         <param name='[stats]' doc='Show statistics' />
       </params>
     </command>
@@ -778,91 +891,60 @@
         <param name='links' doc='Show logical links' />
       </params>
     </command>
+    <command id='show gbproxy tlli-cache'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='tlli-cache' doc='Show TLLI cache entries' />
+      </params>
+    </command>
+    <command id='show gbproxy imsi-cache'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='gbproxy' doc='Display information about the Gb proxy' />
+        <param name='imsi-cache' doc='Show IMSI cache entries' />
+      </params>
+    </command>
+    <command id='show nri all'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='all' doc='Show all SGSNs' />
+      </params>
+    </command>
+    <command id='show nri nsei &lt;0-65535&gt;'>
+      <params>
+        <param name='show' doc='Show running system information' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='nsei' doc='Identify SGSN by NSEI' />
+        <param name='&lt;0-65535&gt;' doc='NSEI of the SGSN' />
+      </params>
+    </command>
+    <command id='logging filter bvc bvci &lt;0-65535&gt;'>
+      <params>
+        <param name='logging' doc='Configure logging' />
+        <param name='filter' doc='Filter log messages' />
+        <param name='bvc' doc='Filter based on BSSGP VC' />
+        <param name='bvci' doc='Identify BVC by BVCI' />
+        <param name='&lt;0-65535&gt;' doc='Numeric identifier' />
+      </params>
+    </command>
     <command id='delete-gbproxy-peer &lt;0-65534&gt; bvci &lt;2-65534&gt;'>
       <params>
-        <param name='delete-gbproxy-peer' doc='Delete a GBProxy peer by NSEI and optionally BVCI' />
+        <param name='delete-gbproxy-peer' doc='Delete a GBProxy bvc by NSEI and optionally BVCI' />
         <param name='&lt;0-65534&gt;' doc='NSEI number' />
-        <param name='bvci' doc='Only delete peer with a matching BVCI' />
+        <param name='bvci' doc='Only delete bvc with a matching BVCI' />
         <param name='&lt;2-65534&gt;' doc='BVCI number' />
       </params>
     </command>
     <command id='delete-gbproxy-peer &lt;0-65534&gt; (only-bvc|only-nsvc|all) [dry-run]'>
       <params>
-        <param name='delete-gbproxy-peer' doc='Delete a GBProxy peer by NSEI and optionally BVCI' />
+        <param name='delete-gbproxy-peer' doc='Delete a GBProxy bvc by NSEI and optionally BVCI' />
         <param name='&lt;0-65534&gt;' doc='NSEI number' />
         <param name='only-bvc' doc='Only delete BSSGP connections (BVC)' />
         <param name='only-nsvc' doc='Only delete dynamic NS connections (NS-VC)' />
         <param name='all' doc='Delete BVC and dynamic NS connections' />
         <param name='[dry-run]' doc='Show what would be deleted instead of actually deleting' />
-      </params>
-    </command>
-    <command id='delete-gbproxy-link &lt;0-65534&gt; (tlli|imsi|sgsn-nsei) IDENT'>
-      <params>
-        <param name='delete-gbproxy-link' doc='Delete a GBProxy logical link entry by NSEI and identification' />
-        <param name='&lt;0-65534&gt;' doc='NSEI number' />
-        <param name='tlli' doc='Delete entries with a matching TLLI (hex)' />
-        <param name='imsi' doc='Delete entries with a matching IMSI' />
-        <param name='sgsn-nsei' doc='Delete entries with a matching SGSN NSEI' />
-        <param name='IDENT' doc='Identification to match' />
-      </params>
-    </command>
-    <command id='delete-gbproxy-link &lt;0-65534&gt; (stale|de-registered)'>
-      <params>
-        <param name='delete-gbproxy-link' doc='Delete a GBProxy logical link entry by NSEI and identification' />
-        <param name='&lt;0-65534&gt;' doc='NSEI number' />
-        <param name='stale' doc='Delete stale entries' />
-        <param name='de-registered' doc='Delete de-registered entries' />
-      </params>
-    </command>
-    <command id='show ns'>
-      <params>
-        <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-      </params>
-    </command>
-    <command id='show ns stats'>
-      <params>
-        <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-        <param name='stats' doc='Include statistics' />
-      </params>
-    </command>
-    <command id='show ns persistent'>
-      <params>
-        <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-        <param name='persistent' doc='Show only persistent NS' />
-      </params>
-    </command>
-    <command id='show ns (nsei|nsvc) &lt;0-65535&gt; [stats]'>
-      <params>
-        <param name='show' doc='Show running system information' />
-        <param name='ns' doc='Display information about the NS protocol' />
-        <param name='nsei' doc='Select one NSE by its NSE Identifier' />
-        <param name='nsvc' doc='Select one NSE by its NS-VC Identifier' />
-        <param name='&lt;0-65535&gt;' doc='The Identifier of selected type' />
-        <param name='[stats]' doc='Include Statistics' />
-      </params>
-    </command>
-    <command id='logging filter nsvc (nsei|nsvci) &lt;0-65535&gt;'>
-      <params>
-        <param name='logging' doc='Configure logging' />
-        <param name='filter' doc='Filter log messages' />
-        <param name='nsvc' doc='Filter based on NS Virtual Connection' />
-        <param name='nsei' doc='Identify NS-VC by NSEI' />
-        <param name='nsvci' doc='Identify NS-VC by NSVCI' />
-        <param name='&lt;0-65535&gt;' doc='Numeric identifier' />
-      </params>
-    </command>
-    <command id='nsvc (nsei|nsvci) &lt;0-65535&gt; (block|unblock|reset)'>
-      <params>
-        <param name='nsvc' doc='Perform an operation on a NSVC' />
-        <param name='nsei' doc='NSEI to identify NS-VC Identifier (NS-VCI)' />
-        <param name='nsvci' doc='NS-VC Identifier (NS-VCI)' />
-        <param name='&lt;0-65535&gt;' doc='The NSEI' />
-        <param name='block' doc='Initiate BLOCK procedure' />
-        <param name='unblock' doc='Initiate UNBLOCK procedure' />
-        <param name='reset' doc='Initiate RESET procedure' />
       </params>
     </command>
   </node>
@@ -1052,6 +1134,20 @@
         <param name='syslog' doc='Logging via syslog' />
       </params>
     </command>
+    <command id='log systemd-journal [raw]'>
+      <params>
+        <param name='log' doc='Configure logging sub-system' />
+        <param name='systemd-journal' doc='Logging to systemd-journal' />
+        <param name='[raw]' doc='Offload rendering of the meta information (location, category) to systemd' />
+      </params>
+    </command>
+    <command id='no log systemd-journal'>
+      <params>
+        <param name='no' doc='Negate a command or set its defaults' />
+        <param name='log' doc='Configure logging sub-system' />
+        <param name='systemd-journal' doc='Logging to systemd-journal' />
+      </params>
+    </command>
     <command id='log gsmtap [HOSTNAME]'>
       <params>
         <param name='log' doc='Configure logging sub-system' />
@@ -1089,11 +1185,11 @@
         <param name='log' doc='Report to the logger' />
       </params>
     </command>
-    <command id='stats interval &lt;1-65535&gt;'>
+    <command id='stats interval &lt;0-65535&gt;'>
       <params>
         <param name='stats' doc='Configure stats sub-system' />
         <param name='interval' doc='Set the reporting interval' />
-        <param name='&lt;1-65535&gt;' doc='Interval in seconds' />
+        <param name='&lt;0-65535&gt;' doc='Interval in seconds (0 disables the reporting interval)' />
       </params>
     </command>
     <command id='gbproxy'>
@@ -1101,9 +1197,11 @@
         <param name='gbproxy' doc='Configure the Gb proxy' />
       </params>
     </command>
-    <command id='ns'>
+    <command id='sgsn nsei &lt;0-65534&gt;'>
       <params>
-        <param name='ns' doc='Configure the GPRS Network Service' />
+        <param name='sgsn' doc='Configure the SGSN' />
+        <param name='nsei' doc='NSEI to be used in the connection with the SGSN' />
+        <param name='&lt;0-65534&gt;' doc='The NSEI' />
       </params>
     </command>
   </node>
@@ -1181,13 +1279,13 @@
         <param name='[last]' doc='Log source file info at the end of a log line. If omitted, log source file info just before the log text.' />
       </params>
     </command>
-    <command id='logging level (|gprs|ns|bssgp|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro) (debug|info|notice|error|fatal)'>
+    <command id='logging level (|gprs|ns|obj|lglobal|llapd|linp|lmux|lmi|lmib|lsms|lctrl|lgtp|lstats|lgsup|loap|lss7|lsccp|lsua|lm3ua|lmgcp|ljibuf|lrspro|lns|lbssgp) (debug|info|notice|error|fatal)'>
       <params>
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='gprs' doc='GPRS Packet Service' />
         <param name='ns' doc='GPRS Network Service (NS)' />
-        <param name='bssgp' doc='GPRS BSS Gateway Protocol (BSSGP)' />
+        <param name='obj' doc='GbProxy object allocation/release' />
         <param name='lglobal' doc='Library-internal global log family' />
         <param name='llapd' doc='LAPD in libosmogsm' />
         <param name='linp' doc='A-bis Intput Subsystem' />
@@ -1207,6 +1305,8 @@
         <param name='lmgcp' doc='libosmo-mgcp Media Gateway Control Protocol' />
         <param name='ljibuf' doc='libosmo-netif Jitter Buffer' />
         <param name='lrspro' doc='Remote SIM protocol' />
+        <param name='lns' doc='GPRS NS layer' />
+        <param name='lbssgp' doc='GPRS BSSGP layer' />
         <param name='debug' doc='Log debug messages and higher levels' />
         <param name='info' doc='Log informational messages and higher levels' />
         <param name='notice' doc='Log noticeable messages and higher levels' />
@@ -1244,16 +1344,6 @@
         <param name='logging' doc='Configure logging' />
         <param name='level' doc='Set the log level for a specified category' />
         <param name='force-all' doc='Release any globally forced log level set with &apos;logging level force-all &lt;level&gt;&apos;' />
-      </params>
-    </command>
-    <command id='logging filter nsvc (nsei|nsvci) &lt;0-65535&gt;'>
-      <params>
-        <param name='logging' doc='Configure logging' />
-        <param name='filter' doc='Filter log messages' />
-        <param name='nsvc' doc='Filter based on NS Virtual Connection' />
-        <param name='nsei' doc='Identify NS-VC by NSEI' />
-        <param name='nsvci' doc='Identify NS-VC by NSVCI' />
-        <param name='&lt;0-65535&gt;' doc='Numeric identifier' />
       </params>
     </command>
   </node>
@@ -1325,6 +1415,12 @@
         <param name='disable' doc='Disable the reporter' />
       </params>
     </command>
+    <command id='flush-period &lt;0-65535&gt;'>
+      <params>
+        <param name='flush-period' doc='Configure stats sub-system' />
+        <param name='&lt;0-65535&gt;' doc='Send all stats even if they have not changed (i.e. force the flush)every N-th reporting interval. Set to 0 to disable regular flush (default).' />
+      </params>
+    </command>
   </node>
   <node id='config-line'>
     <name>config-line</name>
@@ -1347,280 +1443,95 @@
       </params>
     </command>
   </node>
-  <node id='config-ns'>
-    <name>config-ns</name>
-    <command id='nse &lt;0-65535&gt; nsvci &lt;0-65534&gt;'>
+  <node id='config-gbproxy'>
+    <name>config-gbproxy</name>
+    <command id='pool bvc-flow-control-ratio &lt;1-100&gt;'>
       <params>
-        <param name='nse' doc='Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-        <param name='nsvci' doc='NS Virtual Connection' />
-        <param name='&lt;0-65534&gt;' doc='NS Virtual Connection ID (NSVCI)' />
+        <param name='pool' doc='SGSN Pool related configuration' />
+        <param name='bvc-flow-control-ratio' doc='Ratio of BSS-advertised bucket size + leak rate advertised to each SGSN' />
+        <param name='&lt;1-100&gt;' doc='Ratio of BSS-advertised bucket size + leak rate advertised to each SGSN (Percent)' />
       </params>
     </command>
-    <command id='nse &lt;0-65535&gt; remote-ip A.B.C.D'>
+    <command id='nri bitlen &lt;0-15&gt;'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
-        <param name='nse' doc='Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-        <param name='remote-ip' doc='Remote IP Address' />
-        <param name='A.B.C.D' doc='Remote IP Address' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='bitlen' doc='Set number of bits that an NRI has, to extract from TMSI identities (always starting just after the TMSI&apos;s most significant octet).' />
+        <param name='&lt;0-15&gt;' doc='bit count (0 disables) pooling)' />
       </params>
     </command>
-    <command id='nse &lt;0-65535&gt; remote-port &lt;0-65535&gt;'>
+    <command id='nri null add &lt;0-32767&gt; [&lt;0-32767&gt;]'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
-        <param name='nse' doc='Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-        <param name='remote-port' doc='Remote UDP Port' />
-        <param name='&lt;0-65535&gt;' doc='Remote UDP Port Number' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='null' doc='Define NULL-NRI values that cause re-assignment of an MS to a different SGSN, for SGSN pooling.' />
+        <param name='add' doc='Add NULL-NRI value (or range)' />
+        <param name='&lt;0-32767&gt;' doc='First value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos;.' />
+        <param name='[&lt;0-32767&gt;]' doc='Last value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos; and be larger than the first value; if omitted, apply only the first value.' />
       </params>
     </command>
-    <command id='nse &lt;0-65535&gt; fr-dlci &lt;16-1007&gt;'>
+    <command id='nri null del &lt;0-32767&gt; [&lt;0-32767&gt;]'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
-        <param name='nse' doc='Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-        <param name='fr-dlci' doc='Frame Relay DLCI' />
-        <param name='&lt;16-1007&gt;' doc='Frame Relay DLCI Number' />
-      </params>
-    </command>
-    <command id='nse &lt;0-65535&gt; encapsulation (udp|framerelay-gre)'>
-      <params>
-        <param name='nse' doc='Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-        <param name='encapsulation' doc='Encapsulation for NS' />
-        <param name='udp' doc='UDP/IP Encapsulation' />
-        <param name='framerelay-gre' doc='Frame-Relay/GRE/IP Encapsulation' />
-      </params>
-    </command>
-    <command id='nse &lt;0-65535&gt; remote-role (sgsn|bss)'>
-      <params>
-        <param name='nse' doc='Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-        <param name='remote-role' doc='Remote NSE Role' />
-        <param name='sgsn' doc='Remote Peer is SGSN' />
-        <param name='bss' doc='Remote Peer is BSS' />
-      </params>
-    </command>
-    <command id='no nse &lt;0-65535&gt;'>
-      <params>
-        <param name='no' doc='Delete Persistent NS Entity' />
-        <param name='nse' doc='Delete Persistent NS Entity' />
-        <param name='&lt;0-65535&gt;' doc='NS Entity ID (NSEI)' />
-      </params>
-    </command>
-    <command id='timer (tns-block|tns-block-retries|tns-reset|tns-reset-retries|tns-test|tns-alive|tns-alive-retries|tsns-prov) &lt;0-65535&gt;'>
-      <params>
-        <param name='timer' doc='Network Service Timer' />
-        <param name='tns-block' doc='(un)blocking Timer (Tns-block) timeout' />
-        <param name='tns-block-retries' doc='(un)blocking Timer (Tns-block) number of retries' />
-        <param name='tns-reset' doc='Reset Timer (Tns-reset) timeout' />
-        <param name='tns-reset-retries' doc='Reset Timer (Tns-reset) number of retries' />
-        <param name='tns-test' doc='Test Timer (Tns-test) timeout' />
-        <param name='tns-alive' doc='Alive Timer (Tns-alive) timeout' />
-        <param name='tns-alive-retries' doc='Alive Timer (Tns-alive) number of retries' />
-        <param name='tsns-prov' doc='SNS Provision Timer (Tsns-prov) timeout' />
-        <param name='&lt;0-65535&gt;' doc='Timer Value' />
-      </params>
-    </command>
-    <command id='encapsulation udp local-ip A.B.C.D'>
-      <params>
-        <param name='encapsulation' doc='NS encapsulation options' />
-        <param name='udp' doc='NS over UDP Encapsulation' />
-        <param name='local-ip' doc='Set the IP address on which we listen for NS/UDP' />
-        <param name='A.B.C.D' doc='IP Address' />
-      </params>
-    </command>
-    <command id='encapsulation udp local-port &lt;0-65535&gt;'>
-      <params>
-        <param name='encapsulation' doc='NS encapsulation options' />
-        <param name='udp' doc='NS over UDP Encapsulation' />
-        <param name='local-port' doc='Set the UDP port on which we listen for NS/UDP' />
-        <param name='&lt;0-65535&gt;' doc='UDP port number' />
-      </params>
-    </command>
-    <command id='encapsulation udp dscp &lt;0-255&gt;'>
-      <params>
-        <param name='encapsulation' doc='NS encapsulation options' />
-        <param name='udp' doc='NS over UDP Encapsulation' />
-        <param name='dscp' doc='Set DSCP/TOS on the UDP socket' />
-        <param name='&lt;0-255&gt;' doc='DSCP Value' />
-      </params>
-    </command>
-    <command id='encapsulation framerelay-gre enabled (1|0)'>
-      <params>
-        <param name='encapsulation' doc='NS encapsulation options' />
-        <param name='framerelay-gre' doc='NS over Frame Relay over GRE Encapsulation' />
-        <param name='enabled' doc='Enable or disable Frame Relay over GRE' />
-        <param name='1' doc='Enable' />
-        <param name='0' doc='Disable' />
-      </params>
-    </command>
-    <command id='encapsulation framerelay-gre local-ip A.B.C.D'>
-      <params>
-        <param name='encapsulation' doc='NS encapsulation options' />
-        <param name='framerelay-gre' doc='NS over Frame Relay over GRE Encapsulation' />
-        <param name='local-ip' doc='Set the IP address on which we listen for NS/FR/GRE' />
-        <param name='A.B.C.D' doc='IP Address' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='null' doc='Define NULL-NRI values that cause re-assignment of an MS to a different SGSN, for SGSN pooling.' />
+        <param name='del' doc='Remove NRI value or range from the NRI mapping for this MSC' />
+        <param name='&lt;0-32767&gt;' doc='First value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos;.' />
+        <param name='[&lt;0-32767&gt;]' doc='Last value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos; and be larger than the first value; if omitted, apply only the first value.' />
       </params>
     </command>
   </node>
-  <node id='config-gbproxy'>
-    <name>config-gbproxy</name>
-    <command id='sgsn nsei &lt;0-65534&gt;'>
+  <node id='config-sgsn'>
+    <name>config-sgsn</name>
+    <command id='name NAME'>
       <params>
-        <param name='sgsn' doc='SGSN information' />
-        <param name='nsei' doc='NSEI to be used in the connection with the SGSN' />
-        <param name='&lt;0-65534&gt;' doc='The NSEI' />
+        <param name='name' doc='Configure the SGSN' />
+        <param name='NAME' doc='Name the SGSN' />
       </params>
     </command>
-    <command id='core-mobile-country-code &lt;1-999&gt;'>
+    <command id='allow-attach'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
-        <param name='core-mobile-country-code' doc='Use this country code for the core network' />
-        <param name='&lt;1-999&gt;' doc='MCC value' />
+        <param name='allow-attach' doc='Allow this SGSN to attach new subscribers (default).' />
       </params>
     </command>
-    <command id='core-mobile-network-code &lt;1-999&gt;'>
-      <params>
-        <param name='core-mobile-network-code' doc='Use this network code for the core network' />
-        <param name='&lt;1-999&gt;' doc='NCC value' />
-      </params>
-    </command>
-    <command id='match-imsi (patching|routing) .REGEXP'>
-      <params>
-        <param name='match-imsi' doc='Restrict actions to certain IMSIs' />
-        <param name='patching' doc='Patch MS related information elements on match only' />
-        <param name='routing' doc='Route to the secondary SGSN on match only' />
-        <param name='.REGEXP' doc='Regular expression for the IMSI match' />
-      </params>
-    </command>
-    <command id='core-access-point-name (APN|none)'>
-      <params>
-        <param name='core-access-point-name' doc='Use this access point name (APN) for the backbone' />
-        <param name='APN' doc='Replace APN by this string' />
-        <param name='none' doc='Remove APN' />
-      </params>
-    </command>
-    <command id='secondary-sgsn nsei &lt;0-65534&gt;'>
-      <params>
-        <param name='secondary-sgsn' doc='Route matching LLC connections to a second SGSN (Experimental)' />
-        <param name='nsei' doc='NSEI to be used in the connection with the SGSN' />
-        <param name='&lt;0-65534&gt;' doc='The NSEI' />
-      </params>
-    </command>
-    <command id='patch-ptmsi'>
-      <params>
-        <param name='patch-ptmsi' doc='Patch P-TMSI/TLLI' />
-      </params>
-    </command>
-    <command id='acquire-imsi'>
-      <params>
-        <param name='acquire-imsi' doc='Acquire the IMSI before establishing a LLC connection (Experimental)' />
-      </params>
-    </command>
-    <command id='link-list clean-stale-timer &lt;1-999999&gt;'>
-      <params>
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='clean-stale-timer' doc='Periodic timer to clean stale links' />
-        <param name='&lt;1-999999&gt;' doc='Frequency at which the periodic timer is fired (in seconds)' />
-      </params>
-    </command>
-    <command id='link-list max-age &lt;1-999999&gt;'>
-      <params>
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='max-age' doc='Limit maximum age' />
-        <param name='&lt;1-999999&gt;' doc='Maximum age in seconds' />
-      </params>
-    </command>
-    <command id='link-list max-length &lt;1-99999&gt;'>
-      <params>
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='max-length' doc='Limit list length' />
-        <param name='&lt;1-99999&gt;' doc='Maximum number of logical links in the list' />
-      </params>
-    </command>
-    <command id='link-list keep-mode (never|re-attach|identified|always)'>
-      <params>
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='keep-mode' doc='How to keep entries for detached logical links' />
-        <param name='never' doc='Discard entry immediately after detachment' />
-        <param name='re-attach' doc='Keep entry if a re-attachment has be requested' />
-        <param name='identified' doc='Keep entry if it associated with an IMSI' />
-        <param name='always' doc='Don&apos;t discard entries after detachment' />
-      </params>
-    </command>
-    <command id='link stored-msgs-max-length &lt;1-99999&gt;'>
-      <params>
-        <param name='link' doc='Set TLLI parameters' />
-        <param name='stored-msgs-max-length' doc='Limit list length' />
-        <param name='&lt;1-99999&gt;' doc='Maximum number of msgb stored in the logical link waiting to acquire its IMSI' />
-      </params>
-    </command>
-    <command id='no core-mobile-country-code'>
+    <command id='no allow-attach'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
         <param name='no' doc='Negate a command or set its defaults' />
-        <param name='core-mobile-country-code' doc='Use this country code for the core network' />
+        <param name='allow-attach' doc='Do not assign new subscribers to this MSC. Useful if an MSC in an MSC pool is configured to off-load subscribers. The MSC will still be operational for already IMSI-Attached subscribers, but the NAS node selection function will skip this MSC for new subscribers' />
       </params>
     </command>
-    <command id='no core-mobile-network-code'>
+    <command id='nri add &lt;0-32767&gt; [&lt;0-32767&gt;]'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='core-mobile-network-code' doc='Use this network code for the core network' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='add' doc='Add NRI value or range to the NRI mapping for this MSC' />
+        <param name='&lt;0-32767&gt;' doc='First value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos;.' />
+        <param name='[&lt;0-32767&gt;]' doc='Last value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos; and be larger than the first value; if omitted, apply only the first value.' />
       </params>
     </command>
-    <command id='no match-imsi'>
+    <command id='nri del &lt;0-32767&gt; [&lt;0-32767&gt;]'>
+      <attributes scope='global'>
+        <attribute doc='This command applies immediately' flag='!' />
+      </attributes>
       <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='match-imsi' doc='Restrict actions to certain IMSIs' />
-      </params>
-    </command>
-    <command id='no core-access-point-name'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='core-access-point-name' doc='Use this access point name (APN) for the backbone' />
-      </params>
-    </command>
-    <command id='no secondary-sgsn'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='secondary-sgsn' doc='Route matching LLC connections to a second SGSN (Experimental)' />
-      </params>
-    </command>
-    <command id='no patch-ptmsi'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='patch-ptmsi' doc='Patch P-TMSI/TLLI' />
-      </params>
-    </command>
-    <command id='no acquire-imsi'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='acquire-imsi' doc='Acquire the IMSI before establishing a LLC connection (Experimental)' />
-      </params>
-    </command>
-    <command id='no link-list clean-stale-timer'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='clean-stale-timer' doc='Periodic timer to clean stale links' />
-      </params>
-    </command>
-    <command id='no link-list max-age'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='max-age' doc='Limit maximum age' />
-      </params>
-    </command>
-    <command id='no link-list max-length'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='link-list' doc='Set TLLI list parameters' />
-        <param name='max-length' doc='Limit list length' />
-      </params>
-    </command>
-    <command id='no link stored-msgs-max-length'>
-      <params>
-        <param name='no' doc='Negate a command or set its defaults' />
-        <param name='link' doc='Set TLLI parameters' />
-        <param name='stored-msgs-max-length' doc='Limit list length' />
+        <param name='nri' doc='Mapping of Network Resource Indicators to this SGSN, for SGSN pooling' />
+        <param name='del' doc='Remove NRI value or range from the NRI mapping for this MSC' />
+        <param name='&lt;0-32767&gt;' doc='First value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos;.' />
+        <param name='[&lt;0-32767&gt;]' doc='Last value of the NRI value range, should not surpass the configured &apos;nri bitlen&apos; and be larger than the first value; if omitted, apply only the first value.' />
       </params>
     </command>
   </node>

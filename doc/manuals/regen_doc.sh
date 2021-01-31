@@ -51,27 +51,24 @@ interact_vty() {
 }
 
 DIR="$(cd "$(dirname "$0")"; pwd)"
+echo $DIR
 cd "$DIR"
 
 require_osmo_interact_vty
 
 interact_vty \
 	"update_vty_reference" \
-	"vty/sgsn_vty_reference.xml" \
-	4245 \
-	osmo-sgsn -c "../examples/osmo-sgsn/osmo-sgsn.cfg"
-
-interact_vty \
-	"update_vty_reference" \
-	"vty-osmogbproxy/gbproxy_vty_reference.xml" \
+	"vty/gbproxy_vty_reference.xml" \
 	4246 \
 	osmo-gbproxy -c "../examples/osmo-gbproxy/osmo-gbproxy.cfg"
+
+sleep 5
 
 interact_vty \
 	"update_counters" \
 	"chapters/counters_generated.adoc" \
-	4245 \
-	osmo-sgsn -c "../examples/osmo-sgsn/osmo-sgsn.cfg"
+	4246 \
+	osmo-gbproxy -c "../examples/osmo-gbproxy/osmo-gbproxy.cfg"
 
 
 echo "Done with all"

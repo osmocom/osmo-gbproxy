@@ -56,11 +56,11 @@ vty-python-test: $(BUILT_SOURCES)
 vty-transcript-test:
 	osmo_verify_transcript_vty.py -v \
 		-n OsmoGbProxy -p 4246 \
-		-r "$(top_builddir)/src/gbproxy/osmo-gbproxy -c $(top_srcdir)/doc/examples/osmo-gbproxy/osmo-gbproxy.cfg" \
+		-r "$(top_builddir)/src/osmo-gbproxy -c $(top_srcdir)/doc/examples/osmo-gbproxy/osmo-gbproxy.cfg" \
 		$(U) $${T:-$(srcdir)/osmo-gbproxy_test-nodes.vty}
 	osmo_verify_transcript_vty.py -v \
 		-n OsmoGbProxy -p 4246 \
-		-r "$(top_builddir)/src/gbproxy/osmo-gbproxy -c $(top_srcdir)/doc/examples/osmo-gbproxy/osmo-gbproxy-pool.cfg" \
+		-r "$(top_builddir)/src/osmo-gbproxy -c $(top_srcdir)/doc/examples/osmo-gbproxy/osmo-gbproxy-pool.cfg" \
 		$(U) $${T:-$(srcdir)/osmo-gbproxy-pool_test-nodes.vty}
 	rm -f $(builddir)/sms.db $(builddir)/gsn_restart
 

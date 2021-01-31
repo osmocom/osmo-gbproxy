@@ -71,11 +71,11 @@ class TestVTYBase(unittest.TestCase):
 class TestVTYGbproxy(TestVTYBase):
 
     def vty_command(self):
-        return ["./src/gbproxy/osmo-gbproxy", "-c",
+        return ["./src/osmo-gbproxy", "-c",
                 "doc/examples/osmo-gbproxy/osmo-gbproxy.cfg"]
 
     def vty_app(self):
-        return (4246, "./src/gbproxy/osmo-gbproxy", "OsmoGbProxy", "gbproxy")
+        return (4246, "./src/osmo-gbproxy", "OsmoGbProxy", "gbproxy")
 
     def testVtyTree(self):
         self.vty.enable()
@@ -114,178 +114,9 @@ class TestVTYGbproxy(TestVTYBase):
         self.assertTrue(res.find('Deleted 0 BVC') >= 0)
         self.assertTrue(res.find('NSEI not found') >= 0)
 
-class TestVTYSGSN(TestVTYBase):
-
-    def vty_command(self):
-        return ["./src/sgsn/osmo-sgsn", "-c",
-                "doc/examples/osmo-sgsn/osmo-sgsn-accept-all.cfg"]
-
-    def vty_app(self):
-        return (4245, "./src/sgsn/osmo-sgsn", "OsmoSGSN", "sgsn")
-
-    def testVtyTree(self):
-        self.vty.enable()
-        self.assertTrue(self.vty.verify('configure terminal', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.checkForEndAndExit()
-        self.assertTrue(self.vty.verify('ns', ['']))
-        self.assertEqual(self.vty.node(), 'config-ns')
-        self.checkForEndAndExit()
-        self.assertTrue(self.vty.verify('exit', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.assertTrue(self.vty.verify('sgsn', ['']))
-        self.assertEqual(self.vty.node(), 'config-sgsn')
-        self.checkForEndAndExit()
-        self.assertTrue(self.vty.verify('exit', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-
-    def testVtyShow(self):
-        res = self.vty.command("show ns")
-        self.assertTrue(res.find('0 NS-VC:') >= 0)
-        self.assertTrue(self.vty.verify('show bssgp', ['']))
-        self.assertTrue(self.vty.verify('show bssgp stats', ['']))
-        self.assertTrue(self.vty.verify('show bssgp nsei 123', ['']))
-        self.assertTrue(self.vty.verify('show bssgp nsei 123 stats', ['']))
-        self.assertTrue(self.vty.verify('show sgsn', ['  GSN: signalling 127.0.0.1, user traffic 127.0.0.1']))
-        self.assertTrue(self.vty.verify('show mm-context all', ['']))
-        self.assertTrue(self.vty.verify('show mm-context imsi 000001234567', ['No MM context for IMSI 000001234567']))
-        self.assertTrue(self.vty.verify('show pdp-context all', ['']))
-
-        res = self.vty.command("show sndcp")
-        self.assertTrue(res.find('State of SNDCP Entities') >= 0)
-
-        res = self.vty.command("show llc")
-        self.assertTrue(res.find('State of LLC Entities') >= 0)
-
-    def testVtyAuth(self):
-        self.vty.enable()
-        self.assertTrue(self.vty.verify('configure terminal', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.assertTrue(self.vty.verify('sgsn', ['']))
-        self.assertEqual(self.vty.node(), 'config-sgsn')
-        self.assertTrue(self.vty.verify('auth-policy accept-all', ['']))
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find('auth-policy accept-all') > 0)
-        self.assertTrue(self.vty.verify('auth-policy acl-only', ['']))
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find('auth-policy acl-only') > 0)
-        self.assertTrue(self.vty.verify('auth-policy closed', ['']))
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find('auth-policy closed') > 0)
-        self.assertTrue(self.vty.verify('gsup remote-ip 127.0.0.4', ['']))
-        self.assertTrue(self.vty.verify('gsup remote-port 2222', ['']))
-        self.assertTrue(self.vty.verify('auth-policy remote', ['']))
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find('auth-policy remote') > 0)
-
-    def testVtySubscriber(self):
-        self.vty.enable()
-        res = self.vty.command('show subscriber cache')
-        self.assertTrue(res.find('1234567890') < 0)
-        self.assertTrue(self.vty.verify('update-subscriber imsi 1234567890 create', ['']))
-        res = self.vty.command('show subscriber cache')
-        self.assertTrue(res.find('1234567890') >= 0)
-        self.assertTrue(res.find('Authorized: 0') >= 0)
-        self.assertTrue(self.vty.verify('update-subscriber imsi 1234567890 update-location-result ok', ['']))
-        res = self.vty.command('show subscriber cache')
-        self.assertTrue(res.find('1234567890') >= 0)
-        self.assertTrue(res.find('Authorized: 1') >= 0)
-        self.assertTrue(self.vty.verify('update-subscriber imsi 1234567890 cancel update-procedure', ['']))
-        res = self.vty.command('show subscriber cache')
-        self.assertTrue(res.find('1234567890') >= 0)
-        self.assertTrue(self.vty.verify('update-subscriber imsi 1234567890 destroy', ['']))
-        res = self.vty.command('show subscriber cache')
-        self.assertTrue(res.find('1234567890') < 0)
-
-    def testVtyGgsn(self):
-        self.vty.enable()
-        self.assertTrue(self.vty.verify('configure terminal', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.assertTrue(self.vty.verify('sgsn', ['']))
-        self.assertEqual(self.vty.node(), 'config-sgsn')
-        self.assertTrue(self.vty.verify('ggsn 0 remote-ip 127.99.99.99', ['']))
-        self.assertTrue(self.vty.verify('ggsn 0 gtp-version 1', ['']))
-        self.assertTrue(self.vty.verify('apn * ggsn 0', ['']))
-        self.assertTrue(self.vty.verify('apn apn1.test ggsn 0', ['']))
-        self.assertTrue(self.vty.verify('apn apn1.test ggsn 1', ['% a GGSN with id 1 has not been defined']))
-        self.assertTrue(self.vty.verify('apn apn1.test imsi-prefix 123456 ggsn 0', ['']))
-        self.assertTrue(self.vty.verify('apn apn2.test imsi-prefix 123456 ggsn 0', ['']))
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find('ggsn 0 remote-ip 127.99.99.99') >= 0)
-        self.assertTrue(res.find('ggsn 0 gtp-version 1') >= 0)
-        self.assertTrue(res.find('apn * ggsn 0') >= 0)
-        self.assertTrue(res.find('apn apn1.test ggsn 0') >= 0)
-        self.assertTrue(res.find('apn apn1.test imsi-prefix 123456 ggsn 0') >= 0)
-        self.assertTrue(res.find('apn apn2.test imsi-prefix 123456 ggsn 0') >= 0)
-
-    def testVtyEasyAPN(self):
-        self.vty.enable()
-        self.assertTrue(self.vty.verify('configure terminal', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.assertTrue(self.vty.verify('sgsn', ['']))
-        self.assertEqual(self.vty.node(), 'config-sgsn')
-
-        res = self.vty.command("show running-config")
-        self.assertEqual(res.find("apn internet"), -1)
-
-        self.assertTrue(self.vty.verify("access-point-name internet.apn", ['']))
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find("apn internet.apn ggsn 0") >= 0)
-
-        self.assertTrue(self.vty.verify("no access-point-name internet.apn", ['']))
-        res = self.vty.command("show running-config")
-        self.assertEqual(res.find("apn internet"), -1)
-
-    def testVtyCDR(self):
-        self.vty.enable()
-        self.assertTrue(self.vty.verify('configure terminal', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.assertTrue(self.vty.verify('sgsn', ['']))
-        self.assertEqual(self.vty.node(), 'config-sgsn')
-
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find("no cdr filename") > 0)
-
-        self.vty.command("cdr filename bla.cdr")
-        res = self.vty.command("show running-config")
-        self.assertEqual(res.find("no cdr filename"), -1)
-        self.assertTrue(res.find(" cdr filename bla.cdr") > 0)
-
-        self.vty.command("no cdr filename")
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find("no cdr filename") > 0)
-        self.assertEqual(res.find(" cdr filename bla.cdr"), -1)
-
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find(" cdr interval 600") > 0)
-
-        self.vty.command("cdr interval 900")
-        res = self.vty.command("show running-config")
-        self.assertTrue(res.find(" cdr interval 900") > 0)
-        self.assertEqual(res.find(" cdr interval 600"), -1)
-
-    def testVtyTimers(self):
-        self.vty.enable()
-        self.assertTrue(self.vty.verify('configure terminal', ['']))
-        self.assertEqual(self.vty.node(), 'config')
-        self.assertTrue(self.vty.verify('sgsn', ['']))
-        self.assertEqual(self.vty.node(), 'config-sgsn')
-
-        for t in [3312, 3322, 3350, 3360, 3370, 3313, 3314, 3316, 3385, 3395, 3397]:
-            self.assertTrue(self.vty.verify('timer t%d 10' % t, ['']))
-
 def add_gbproxy_test(suite, workdir):
-    if not os.path.isfile(os.path.join(workdir, "src/gbproxy/osmo-gbproxy")):
-        print("Skipping the Gb-Proxy test")
-        return
+    assert os.path.isfile(os.path.join(workdir, "src/osmo-gbproxy"))
     test = unittest.TestLoader().loadTestsFromTestCase(TestVTYGbproxy)
-    suite.addTest(test)
-
-def add_sgsn_test(suite, workdir):
-    if not os.path.isfile(os.path.join(workdir, "src/sgsn/osmo-sgsn")):
-        print("Skipping the SGSN test")
-        return
-    test = unittest.TestLoader().loadTestsFromTestCase(TestVTYSGSN)
     suite.addTest(test)
 
 if __name__ == '__main__':
@@ -319,7 +150,6 @@ if __name__ == '__main__':
     print("Running tests for specific VTY commands")
     suite = unittest.TestSuite()
     add_gbproxy_test(suite, workdir)
-    add_sgsn_test(suite, workdir)
 
     if args.test_name:
         osmoutil.pick_tests(suite, *args.test_name)

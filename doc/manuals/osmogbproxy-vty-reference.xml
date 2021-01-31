@@ -6,7 +6,7 @@
 <!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML 5.0//EN"
 "http://docbook.org/xml/5.0/dtd/docbook.dtd" [
 <!ENTITY chapter-vty      SYSTEM      "./common/chapters/vty.xml" >
-<!ENTITY sections-vty     SYSTEM      "generated/docbook_osmogbproxy-vty-reference.xml"  >
+<!ENTITY sections-vty     SYSTEM      "generated/docbook_vty.xml"  >
 ]>
 
 <book>
