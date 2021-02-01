@@ -1,7 +1,8 @@
 #
-# spec file for package osmo-sgsn
+# spec file for package osmo-gbproxy
 #
 # Copyright (c) 2017, Martin Hauke <mardnh@gmx.de>
+# Copyright (c) 2021, sysmocom - s.f.m.c. GmbH
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -70,10 +71,10 @@ make %{?_smp_mflags} check || (find . -name testsuite.log -exec cat {} +)
 %files
 %doc AUTHORS README.md
 %dir %{_docdir}/%{name}/examples
-%dir %{_docdir}/%{name}/examples/osmo-sgsn
-%{_docdir}/%{name}/examples/osmo-sgsn/osmo-gbproxy.cfg
-%{_docdir}/%{name}/examples/osmo-sgsn/osmo-gbproxy-legacy.cfg
-%{_docdir}/%{name}/examples/osmo-sgsn/osmo-gbproxy-pool.cfg
+%dir %{_docdir}/%{name}/examples/osmo-gbproxy
+%{_docdir}/%{name}/examples/osmo-gbproxy/osmo-gbproxy.cfg
+%{_docdir}/%{name}/examples/osmo-gbproxy/osmo-gbproxy-legacy.cfg
+%{_docdir}/%{name}/examples/osmo-gbproxy/osmo-gbproxy-pool.cfg
 %{_bindir}/osmo-gbproxy
 %dir %{_sysconfdir}/osmocom
 %config(noreplace) %{_sysconfdir}/osmocom/osmo-gbproxy.cfg
