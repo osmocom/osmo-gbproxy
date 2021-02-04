@@ -8,6 +8,7 @@
 #include <osmocom/core/hashtable.h>
 #include <osmocom/gsm/gsm23003.h>
 #include <osmocom/gsm/gsm23236.h>
+#include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
 
 #include <osmocom/gprs/gprs_ns2.h>
@@ -110,8 +111,13 @@ struct gbproxy_cell {
 	/*  BVCI of PTP BVCs associated to this cell */
 	uint16_t bvci;
 
-	/* Routing Area that this BVC is part of (raw 04.08 encoding) */
-	uint8_t ra[6];
+	struct {
+		/* Routing Area that this cell is part of */
+		struct gprs_ra_id raid;
+
+		/* Cell ID of this cell */
+		uint16_t cid;
+	} id;
 
 	/* pointer to the BSS-side BVC */
 	struct gbproxy_bvc *bss_bvc;
@@ -131,8 +137,8 @@ struct gbproxy_bvc {
 	/* PTP BVCI of this BVC */
 	uint16_t bvci;
 
-	/* Routing Area that this BVC is part of (raw 04.08 encoding) */
-	uint8_t ra[6];
+	/* Routing Area that this BVC is part of */
+	struct gprs_ra_id raid;
 
 	/* Counter */
 	struct rate_ctr_group *ctrg;

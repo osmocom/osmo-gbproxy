@@ -78,10 +78,8 @@ static void gbprox_vty_print_bvc(struct vty *vty, struct gbproxy_bvc *bvc)
 		vty_out(vty, "NSEI %5u, SIG-BVCI %5u [%s]%s", bvc->nse->nsei, bvc->bvci,
 			osmo_fsm_inst_state_name(bvc->fi), VTY_NEWLINE);
 	} else {
-		struct gprs_ra_id raid;
-		gsm48_parse_ra(&raid, bvc->ra);
 		vty_out(vty, "NSEI %5u, PTP-BVCI %5u, RAI %s [%s]%s", bvc->nse->nsei, bvc->bvci,
-			osmo_rai_name(&raid), osmo_fsm_inst_state_name(bvc->fi), VTY_NEWLINE);
+			osmo_rai_name(&bvc->cell->id.raid), osmo_fsm_inst_state_name(bvc->fi), VTY_NEWLINE);
 	}
 }
 
@@ -100,12 +98,10 @@ static void gbproxy_vty_print_nse(struct vty *vty, struct gbproxy_nse *nse, bool
 
 static void gbproxy_vty_print_cell(struct vty *vty, struct gbproxy_cell *cell, bool show_stats)
 {
-	struct gprs_ra_id raid;
-	gsm48_parse_ra(&raid, cell->ra);
 	unsigned int num_sgsn_bvc = 0;
 	unsigned int i;
 
-	vty_out(vty, "BVCI %5u RAI %s: ", cell->bvci, osmo_rai_name(&raid));
+	vty_out(vty, "BVCI %5u RAI %s CID %05u: ", cell->bvci, osmo_rai_name(&cell->id.raid), cell->id.cid);
 	if (cell->bss_bvc)
 		vty_out(vty, "BSS NSEI %5u, SGSN NSEI ", cell->bss_bvc->nse->nsei);
 	else

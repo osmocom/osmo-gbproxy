@@ -671,7 +671,8 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 
 		bvc->cell = gbproxy_cell_alloc(cfg, bvci);
 		OSMO_ASSERT(bvc->cell);
-		memcpy(bvc->cell->ra, bvc->ra, sizeof(bvc->cell->ra));
+		memcpy(&bvc->cell->id.raid, &bvc->raid, sizeof(bvc->cell->id.raid));
+		bvc->cell->id.cid = cell_id;
 
 		/* link us to the cell and vice-versa */
 		bvc->cell->bss_bvc = bvc;
@@ -688,7 +689,7 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 			OSMO_ASSERT(sgsn_bvc);
 
 			sgsn_bvc->cell = bvc->cell;
-			memcpy(sgsn_bvc->ra, bvc->cell->ra, sizeof(sgsn_bvc->ra));
+			memcpy(&sgsn_bvc->raid, &bvc->cell->id.raid, sizeof(sgsn_bvc->raid));
 			sgsn_bvc->fi = bssgp_bvc_fsm_alloc_ptp_bss(sgsn_bvc, cfg->nsi, sgsn_nse->nsei,
 								   bvci, ra_id, cell_id);
 			OSMO_ASSERT(sgsn_bvc->fi);
@@ -878,8 +879,8 @@ static int rx_bvc_reset_from_bss(struct gbproxy_nse *nse, struct msgb *msg, stru
 			 * PDU, this means we can extend our local
 			 * state information about this particular cell
 			 * */
-			memcpy(from_bvc->ra, TLVP_VAL(tp, BSSGP_IE_CELL_ID), sizeof(from_bvc->ra));
-			gsm48_parse_ra(&raid, from_bvc->ra);
+			gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_CELL_ID));
+			memcpy(&from_bvc->raid, &raid, sizeof(from_bvc->raid));
 			LOGPBVC(from_bvc, LOGL_INFO, "Cell ID %s\n", osmo_rai_name(&raid));
 		}
 	}
@@ -1053,11 +1054,13 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 		LOGPBVC(sgsn_bvc, LOGL_INFO, "Rx %s: routing by BVCI\n", pdut_name);
 		return gbprox_relay2peer(msg, sgsn_bvc->cell->bss_bvc, ns_bvci);
 	} else if (TLVP_PRES_LEN(tp, BSSGP_IE_ROUTEING_AREA, 6)) {
+		struct gprs_ra_id raid;
 		errctr = GBPROX_GLOB_CTR_INV_RAI;
+		gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA));
 		/* iterate over all bvcs and dispatch the paging to each matching one */
 		hash_for_each(cfg->bss_nses, i, nse, list) {
 			hash_for_each(nse->bvcs, j, bss_bvc, list) {
-				if (!memcmp(bss_bvc->ra, TLVP_VAL(tp, BSSGP_IE_ROUTEING_AREA), 6)) {
+				if (gsm48_ra_equal(&bss_bvc->raid, &raid)) {
 					LOGPNSE(nse, LOGL_INFO, "Rx %s: routing to NSE (RAI match)\n",
 						pdut_name);
 					gbprox_relay2peer(msg, bss_bvc, ns_bvci);
@@ -1068,11 +1071,13 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 			}
 		}
 	} else if (TLVP_PRES_LEN(tp, BSSGP_IE_LOCATION_AREA, 5)) {
+		struct gsm48_ra_id lac;
 		errctr = GBPROX_GLOB_CTR_INV_LAI;
 		/* iterate over all bvcs and dispatch the paging to each matching one */
 		hash_for_each(cfg->bss_nses, i, nse, list) {
 			hash_for_each(nse->bvcs, j, bss_bvc, list) {
-				if (!memcmp(bss_bvc->ra, TLVP_VAL(tp, BSSGP_IE_LOCATION_AREA), 5)) {
+				gsm48_encode_ra(&lac, &bss_bvc->raid);
+				if (!memcmp(&lac, TLVP_VAL(tp, BSSGP_IE_LOCATION_AREA), 5)) {
 					LOGPNSE(nse, LOGL_INFO, "Rx %s: routing to NSE (LAI match)\n",
 						pdut_name);
 					gbprox_relay2peer(msg, bss_bvc, ns_bvci);
