@@ -893,7 +893,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *) msgb_bssgph(msg);
 	uint8_t pdu_type = bgph->pdu_type;
 	const char *pdut_name = osmo_tlv_prot_msg_name(&osmo_pdef_bssgp, bgph->pdu_type);
-	struct tlv_parsed tp;
+	struct tlv_parsed tp[2];
 	int data_len = msgb_bssgp_len(msg) - sizeof(*bgph);
 	struct gbproxy_bvc *from_bvc = NULL;
 	char log_pfx[32];
@@ -920,34 +920,34 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
-	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, pdu_type, bgph->data, data_len, 0, 0,
+	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, ARRAY_SIZE(tp), pdu_type, bgph->data, data_len, 0, 0,
 				 DGPRS, log_pfx);
 	if (rc < 0) {
 		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
 		return tx_status_from_tlvp(rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
-	msgb_bcid(msg) = (void *)&tp;
+	msgb_bcid(msg) = (void *)tp;
 
 	/* special case handling for some PDU types */
 	switch (pdu_type) {
 	case BSSGP_PDUT_BVC_RESET:
 		/* resolve or create gbproxy_bvc + handlei n BVC-FSM */
-		return rx_bvc_reset_from_bss(nse, msg, &tp);
+		return rx_bvc_reset_from_bss(nse, msg, &tp[0]);
 	case BSSGP_PDUT_BVC_RESET_ACK:
-		ptp_bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		from_bvc = gbproxy_bvc_by_bvci(nse, ptp_bvci);
 		if (!from_bvc)
 			goto err_no_bvc;
 		return osmo_fsm_inst_dispatch(from_bvc->fi, BSSGP_BVCFSM_E_RX_RESET_ACK, msg);
 	case BSSGP_PDUT_BVC_BLOCK:
-		ptp_bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		from_bvc = gbproxy_bvc_by_bvci(nse, ptp_bvci);
 		if (!from_bvc)
 			goto err_no_bvc;
 		return osmo_fsm_inst_dispatch(from_bvc->fi, BSSGP_BVCFSM_E_RX_BLOCK, msg);
 	case BSSGP_PDUT_BVC_UNBLOCK:
-		ptp_bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		from_bvc = gbproxy_bvc_by_bvci(nse, ptp_bvci);
 		if (!from_bvc)
 			goto err_no_bvc;
@@ -957,7 +957,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	{
 		struct gbproxy_sgsn *sgsn;
 
-		tlli = osmo_load32be(TLVP_VAL(&tp, BSSGP_IE_TLLI));
+		tlli = osmo_load32be(TLVP_VAL(&tp[0], BSSGP_IE_TLLI));
 		sgsn = gbproxy_select_sgsn(nse->cfg, &tlli);
 		if (!sgsn) {
 			LOGP(DGPRS, LOGL_ERROR, "Could not find any SGSN for TLLI, dropping message!\n");
@@ -971,7 +971,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 #if 0
 		/* TODO: Validate the RAI for consistency with the RAI
 		 * we expect for any of the BVC within this BSS side NSE */
-		memcpy(ra, TLVP_VAL(&tp, BSSGP_IE_ROUTEING_AREA), sizeof(from_bvc->ra));
+		memcpy(ra, TLVP_VAL(&tp[0], BSSGP_IE_ROUTEING_AREA), sizeof(from_bvc->ra));
 		gsm48_parse_ra(&raid, from_bvc->ra);
 #endif
 		break;
@@ -991,8 +991,8 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	case BSSGP_PDUT_LLC_DISCARD:
 	case BSSGP_PDUT_FLUSH_LL_ACK:
 		/* route based on BVCI + TLLI */
-		ptp_bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
-		tlli = osmo_load32be(TLVP_VAL(&tp, BSSGP_IE_TLLI));
+		ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
+		tlli = osmo_load32be(TLVP_VAL(&tp[0], BSSGP_IE_TLLI));
 		from_bvc = gbproxy_bvc_by_bvci(nse, ptp_bvci);
 		if (!from_bvc)
 			goto err_no_bvc;
@@ -1003,8 +1003,8 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	{
 		/* Route according to IMSI<->NSE cache entry */
 		struct osmo_mobile_identity mi;
-		const uint8_t *mi_data = TLVP_VAL(&tp, BSSGP_IE_IMSI);
-		uint8_t mi_len = TLVP_LEN(&tp, BSSGP_IE_IMSI);
+		const uint8_t *mi_data = TLVP_VAL(&tp[0], BSSGP_IE_IMSI);
+		uint8_t mi_len = TLVP_LEN(&tp[0], BSSGP_IE_IMSI);
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
 		nse = gbproxy_nse_by_imsi(nse->cfg, mi.imsi);
 		if (!nse) {
@@ -1143,7 +1143,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	const char *pdut_name = osmo_tlv_prot_msg_name(&osmo_pdef_bssgp, bgph->pdu_type);
 	struct gbproxy_config *cfg = nse->cfg;
 	struct gbproxy_bvc *sgsn_bvc;
-	struct tlv_parsed tp;
+	struct tlv_parsed tp[2];
 	int data_len;
 	uint16_t bvci;
 	char log_pfx[32];
@@ -1173,7 +1173,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 
 	data_len = msgb_bssgp_len(msg) - sizeof(*bgph);
 
-	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, pdu_type, bgph->data, data_len, 0, 0,
+	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, ARRAY_SIZE(tp), pdu_type, bgph->data, data_len, 0, 0,
 				 DGPRS, log_pfx);
 	if (rc < 0) {
 		rc = tx_status_from_tlvp(rc, msg);
@@ -1181,30 +1181,30 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		return rc;
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
-	msgb_bcid(msg) = (void *)&tp;
+	msgb_bcid(msg) = (void *)tp;
 
 	switch (pdu_type) {
 	case BSSGP_PDUT_BVC_RESET:
 		/* resolve or create ggbproxy_bvc + handle in BVC-FSM */
-		bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
-		rc = rx_bvc_reset_from_sgsn(nse, msg, &tp, ns_bvci);
+		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
+		rc = rx_bvc_reset_from_sgsn(nse, msg, &tp[0], ns_bvci);
 		break;
 	case BSSGP_PDUT_BVC_RESET_ACK:
-		bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
 		if (!sgsn_bvc)
 			goto err_no_bvc;
 		rc = osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_RX_RESET_ACK, msg);
 		break;
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
-		bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
 		if (!sgsn_bvc)
 			goto err_no_bvc;
 		rc = osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_RX_BLOCK_ACK, msg);
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK_ACK:
-		bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
 		if (!sgsn_bvc)
 			goto err_no_bvc;
@@ -1212,7 +1212,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		break;
 	case BSSGP_PDUT_FLUSH_LL:
 		/* simple case: BVCI IE is mandatory */
-		bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
 		if (!sgsn_bvc)
 			goto err_no_bvc;
@@ -1228,23 +1228,23 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	{
 		/* Cache the IMSI<->NSE to route PAGING REJECT */
 		struct osmo_mobile_identity mi;
-		const uint8_t *mi_data = TLVP_VAL(&tp, BSSGP_IE_IMSI);
-		uint8_t mi_len = TLVP_LEN(&tp, BSSGP_IE_IMSI);
+		const uint8_t *mi_data = TLVP_VAL(&tp[0], BSSGP_IE_IMSI);
+		uint8_t mi_len = TLVP_LEN(&tp[0], BSSGP_IE_IMSI);
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
 		gbproxy_imsi_cache_update(nse, mi.imsi);
 		/* fall through */
 	}
 	case BSSGP_PDUT_PAGING_CS:
 		/* process the paging request (LAI/RAI lookup) */
-		rc = gbprox_rx_paging(nse, msg, pdut_name, &tp, ns_bvci, paging_bc);
+		rc = gbprox_rx_paging(nse, msg, pdut_name, &tp[0], ns_bvci, paging_bc);
 		break;
 	case BSSGP_PDUT_STATUS:
 		/* Some exception has occurred */
-		cause = *TLVP_VAL(&tp, BSSGP_IE_CAUSE);
+		cause = *TLVP_VAL(&tp[0], BSSGP_IE_CAUSE);
 		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s) ", cause,
 			bssgp_cause_str(cause));
-		if (TLVP_PRES_LEN(&tp, BSSGP_IE_BVCI, 2)) {
-			bvci = ntohs(tlvp_val16_unal(&tp, BSSGP_IE_BVCI));
+		if (TLVP_PRES_LEN(&tp[0], BSSGP_IE_BVCI, 2)) {
+			bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 			LOGPC(DGPRS, LOGL_NOTICE, "BVCI=%05u\n", bvci);
 			sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
 			/* don't send STATUS in response to STATUS if !bvc */
@@ -1260,7 +1260,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	case BSSGP_PDUT_RESUME_NACK:
 	{
 		struct gbproxy_nse *nse_peer;
-		uint32_t tlli = osmo_load32be(TLVP_VAL(&tp, BSSGP_IE_TLLI));
+		uint32_t tlli = osmo_load32be(TLVP_VAL(&tp[0], BSSGP_IE_TLLI));
 
 		nse_peer = gbproxy_nse_by_tlli(cfg, tlli);
 		if (!nse_peer) {
