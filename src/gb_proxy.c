@@ -46,6 +46,7 @@
 #include <osmocom/gprs/gprs_bssgp2.h>
 #include <osmocom/gprs/gprs_bssgp_bss.h>
 #include <osmocom/gprs/bssgp_bvc_fsm.h>
+#include <osmocom/gprs/protocol/gsm_08_18.h>
 
 #include <osmocom/gsm/gsm23236.h>
 #include <osmocom/gsm/gsm_utils.h>
@@ -886,6 +887,79 @@ static int rx_bvc_reset_from_bss(struct gbproxy_nse *nse, struct msgb *msg, stru
 	return 0;
 }
 
+/* Receive an incoming RIM message from a BSS-side NS-VC */
+static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse, struct msgb *msg, char *log_pfx,
+				  const char *pdut_name)
+{
+	struct gbproxy_sgsn *sgsn;
+	struct gbproxy_cell *dest_cell;
+	struct gbproxy_cell *src_cell;
+	struct bssgp_rim_routing_info dest_ri;
+	struct bssgp_rim_routing_info src_ri;
+	int rc;
+
+	rc = bssgp_parse_rim_ri(&dest_ri, TLVP_VAL(&tp[0], BSSGP_IE_RIM_ROUTING_INFO),
+				TLVP_LEN(&tp[0], BSSGP_IE_RIM_ROUTING_INFO));
+	if (rc < 0) {
+		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse destination RIM routing info\n", log_pfx, pdut_name);
+		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+	}
+	rc = bssgp_parse_rim_ri(&src_ri, TLVP_VAL(&tp[1], BSSGP_IE_RIM_ROUTING_INFO),
+				TLVP_LEN(&tp[1], BSSGP_IE_RIM_ROUTING_INFO));
+	if (rc < 0) {
+		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse source RIM routing info\n", log_pfx, pdut_name);
+		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+	}
+
+	/* Since gbproxy is 2G only we do not expect to get RIM messages only from GERAN cells. */
+	if (src_ri.discr != BSSGP_RIM_ROUTING_INFO_GERAN) {
+		LOGP(DGPRS, LOGL_ERROR, "%s %s source RIM routing info is not GERAN (%s)\n", log_pfx, pdut_name,
+		     bssgp_rim_ri_name(&src_ri));
+		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+	}
+
+	/* Lookup source cell to make sure that the source RIM routing information actually belongs
+	 * to a valid cell that we know */
+	src_cell = gbproxy_cell_by_cellid(nse->cfg, &src_ri.geran.raid, src_ri.geran.cid);
+	if (!src_cell) {
+		LOGP(DGPRS, LOGL_NOTICE, "%s %s cannot find cell for source RIM routing info (%s)\n", log_pfx,
+		     pdut_name, bssgp_rim_ri_name(&src_ri));
+		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+	}
+
+	/* TODO: Use bssgp_bvc_get_features_negotiated(src_cell->bss_bvc->fi) to check if the the BSS sided BVC actually
+	 * did negotiate RIM support. If not we should respond with a BSSGP STATUS message. The cause code should be
+	 * BSSGP_CAUSE_PDU_INCOMP_FEAT. */
+
+	/* If Destination is known by gbproxy, route directly */
+	if (dest_ri.discr == BSSGP_RIM_ROUTING_INFO_GERAN) {
+		dest_cell = gbproxy_cell_by_cellid(nse->cfg, &dest_ri.geran.raid, dest_ri.geran.cid);
+		if (dest_cell) {
+			/* TODO: Also check if dest_cell->bss_bvc is RIM-capable (see also above). If not we should
+			 * respond with a BSSGP STATUS message as well because it also would make no sense to try
+			 * routing the RIM message to the next RIM-capable SGSN. */
+			LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to peer (nsei=%u) RIM-PDU: src=%s, dest=%s\n", log_pfx, pdut_name,
+			     dest_cell->bss_bvc->nse->nsei, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+			return gbprox_relay2peer(msg, dest_cell->bss_bvc, 0);
+		}
+	}
+
+	/* Otherwise pass on to a RIM-capable SGSN */
+	/* TODO: We need to extend gbproxy_select_sgsn() so that it selects a RIM-capable SGSN, at the moment we just
+	 * get any SGSN and just assume that it is RIM-capable. */
+	sgsn = gbproxy_select_sgsn(nse->cfg, NULL);
+	if (!sgsn) {
+		LOGP(DGPRS, LOGL_NOTICE,
+		     "%s %s cannot route RIM message (%s to %s) since no RIM capable SGSN is found!\n", log_pfx,
+		     pdut_name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+	}
+	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n", log_pfx, pdut_name,
+	     sgsn->nse->nsei, sgsn->name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+
+	return gbprox_relay2nse(msg, sgsn->nse, 0);
+}
+
 /* Receive an incoming signalling message from a BSS-side NS-VC */
 static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uint16_t ns_bvci)
 {
@@ -984,8 +1058,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	case BSSGP_PDUT_RAN_INFO_ACK:
 	case BSSGP_PDUT_RAN_INFO_ERROR:
 	case BSSGP_PDUT_RAN_INFO_APP_ERROR:
-		/* FIXME: route based in RIM Routing IE */
-		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
+		rc = gbprox_rx_rim_from_bss(tp, nse, msg, log_pfx, pdut_name);
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
 	case BSSGP_PDUT_FLUSH_LL_ACK:
@@ -1132,6 +1205,58 @@ static int rx_bvc_reset_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, str
 	}
 
 	return 0;
+}
+
+/* Receive an incoming RIM message from the SGSN-side NS-VC */
+static int gbprox_rx_rim_from_sgsn(struct tlv_parsed *tp, struct gbproxy_nse *nse, struct msgb *msg, char *log_pfx,
+				   const char *pdut_name)
+{
+	struct gbproxy_sgsn *sgsn;
+	struct gbproxy_cell *dest_cell;
+	struct bssgp_rim_routing_info dest_ri;
+	struct bssgp_rim_routing_info src_ri;
+	int rc;
+
+	/* TODO: Reply with STATUS if BSSGP didn't negotiate RIM feature, see also comments in
+	   gbprox_rx_rim_from_bss() */
+
+	rc = bssgp_parse_rim_ri(&dest_ri, TLVP_VAL(&tp[0], BSSGP_IE_RIM_ROUTING_INFO),
+				TLVP_LEN(&tp[0], BSSGP_IE_RIM_ROUTING_INFO));
+	if (rc < 0) {
+		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse destination RIM routing info\n", log_pfx, pdut_name);
+		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+	}
+	rc = bssgp_parse_rim_ri(&src_ri, TLVP_VAL(&tp[1], BSSGP_IE_RIM_ROUTING_INFO),
+				TLVP_LEN(&tp[1], BSSGP_IE_RIM_ROUTING_INFO));
+	if (rc < 0) {
+		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse source RIM routing info\n", log_pfx, pdut_name);
+		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+	}
+
+	/* Since gbproxy is 2G only we do not expect to get RIM messages that target non-GERAN cells. */
+	if (dest_ri.discr != BSSGP_RIM_ROUTING_INFO_GERAN) {
+		LOGP(DGPRS, LOGL_ERROR, "%s %s destination RIM routing info is not GERAN (%s)\n", log_pfx, pdut_name,
+		     bssgp_rim_ri_name(&dest_ri));
+		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+	}
+
+	/* Lookup destination cell */
+	dest_cell = gbproxy_cell_by_cellid(nse->cfg, &dest_ri.geran.raid, dest_ri.geran.cid);
+	if (!dest_cell) {
+		LOGP(DGPRS, LOGL_NOTICE, "%s %s cannot find cell for destination RIM routing info (%s)\n", log_pfx,
+		     pdut_name, bssgp_rim_ri_name(&dest_ri));
+		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+	}
+
+	/* TODO: Check if the BVC of the destination cell actually did negotiate RIM support, see also comments
+	 * in gbprox_rx_rim_from_bss() */
+	sgsn = gbproxy_sgsn_by_nsei(nse->cfg, nse->nsei);
+	OSMO_ASSERT(sgsn);
+
+	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying from SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n", log_pfx, pdut_name,
+	     sgsn->nse->nsei, sgsn->name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+
+	return gbprox_relay2peer(msg, dest_cell->bss_bvc, 0);
 }
 
 /* Receive an incoming signalling message from the SGSN-side NS-VC */
@@ -1286,9 +1411,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	case BSSGP_PDUT_RAN_INFO_ACK:
 	case BSSGP_PDUT_RAN_INFO_ERROR:
 	case BSSGP_PDUT_RAN_INFO_APP_ERROR:
-		/* FIXME: route based in RIM Routing IE */
-		rc = bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_FEAT, NULL, msg);
-		break;
+		rc = gbprox_rx_rim_from_sgsn(tp, nse, msg, log_pfx, pdut_name);
 	default:
 		LOGPNSE(nse, LOGL_NOTICE, "Rx %s: Not supported\n", pdut_name);
 		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]);
