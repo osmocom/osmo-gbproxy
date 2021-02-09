@@ -669,10 +669,8 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 		 * for this BVC.  We need to create the 'cell' data structure and the SGSN-side
 		 * BVC counterparts */
 
-		bvc->cell = gbproxy_cell_alloc(cfg, bvci);
+		bvc->cell = gbproxy_cell_alloc(cfg, bvci, ra_id, cell_id);
 		OSMO_ASSERT(bvc->cell);
-		memcpy(&bvc->cell->id.raid, &bvc->raid, sizeof(bvc->cell->id.raid));
-		bvc->cell->id.cid = cell_id;
 
 		/* link us to the cell and vice-versa */
 		bvc->cell->bss_bvc = bvc;

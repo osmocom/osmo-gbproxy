@@ -163,7 +163,8 @@ int gbproxy_cleanup_bvcs(struct gbproxy_nse *nse, uint16_t bvci)
  ***********************************************************************/
 
 /* Allocate a new 'cell' object */
-struct gbproxy_cell *gbproxy_cell_alloc(struct gbproxy_config *cfg, uint16_t bvci)
+struct gbproxy_cell *gbproxy_cell_alloc(struct gbproxy_config *cfg, uint16_t bvci,
+					const struct gprs_ra_id *raid, uint16_t cid)
 {
 	struct gbproxy_cell *cell;
 	OSMO_ASSERT(cfg);
@@ -174,6 +175,8 @@ struct gbproxy_cell *gbproxy_cell_alloc(struct gbproxy_config *cfg, uint16_t bvc
 
 	cell->cfg = cfg;
 	cell->bvci = bvci;
+	cell->id.cid = cid;
+	memcpy(&cell->id.raid, raid, sizeof(cell->id.raid));
 
 	hash_add(cfg->cells, &cell->list, cell->bvci);
 
