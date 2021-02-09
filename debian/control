@@ -11,7 +11,6 @@ Build-Depends: debhelper (>=9),
                libtool,
                pkg-config,
                libtalloc-dev,
-               libc-ares-dev,
                libosmocore-dev (>= 1.4.0),
                osmo-gsm-manuals-dev
 Standards-Version: 3.9.8

@@ -84,7 +84,6 @@ Files:     include/osmocom/sgsn/a_reset.h
            src/gprs/crc24.c
            src/gprs/gprs_gb_parse.c
            src/gprs/gprs_utils.c
-           src/gprs/sgsn_ares.c
            src/gbproxy/gb_proxy.c
            src/gbproxy/gb_proxy_main.c
            src/gbproxy/gb_proxy_peer.c
@@ -137,8 +136,7 @@ License:   AGPL-3.0+
  You should have received a copy of the GNU Affero General Public License
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Files:     src/gtphub/gtphub_ares.c
-           src/gtphub/gtphub_sock.c
+Files:     src/gtphub/gtphub_sock.c
            tests/gbproxy/gbproxy_test.c
 Copyright: 2013 Jacob Erlbeck <jerlbeck@sysmocom.de>
            2013 sysmocom s.f.m.c. GmbH
