@@ -461,7 +461,6 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		} else if (TLVP_PRESENT(&tp, BSSGP_IE_IMSI)) {
 			/* FIXME: Use the IMSI as selector? */
 			rc = gbprox_bss2sgsn_tlli(bss_bvc->cell, msg, NULL, false);
-			/* rc = gbprox_bss2sgsn_hashed(bss_bvc->cell, msg, NULL); */
 		} else
 			LOGPBVC(bss_bvc, LOGL_ERROR, "Rx RADIO-STATUS without any of the conditional IEs\n");
 		break;
@@ -1392,7 +1391,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 			uint8_t cause = BSSGP_CAUSE_OML_INTERV;
 			bvc = gbproxy_bvc_by_bvci(sgsn_nse, 0);
 			if (bvc)
-				osmo_fsm_inst_dispatch(bvc->fi, BSSGP_BVCFSM_E_REQ_RESET, &cause); 
+				osmo_fsm_inst_dispatch(bvc->fi, BSSGP_BVCFSM_E_REQ_RESET, &cause);
 		}
 		break;
 	case GPRS_NS2_AFF_CAUSE_FAILURE:

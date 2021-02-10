@@ -93,8 +93,7 @@ struct gbproxy_bvc *gbproxy_bvc_alloc(struct gbproxy_nse *nse, uint16_t bvci)
 
 	/* We leave allocating the bvc->fi to the caller, as the FSM details depend
 	 * on the type of BVC (SIG/PTP) and role (SGSN/BSS) */
-
-        return bvc;
+	return bvc;
 }
 
 void gbproxy_bvc_free(struct gbproxy_bvc *bvc)
@@ -711,7 +710,7 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_nri(struct gbproxy_config *cfg, uint16_t nr
 	return NULL;
 }
 
-/*! Seleect a pseudo-random SGSN for a given TLLI, ignoring any SGSN that is not accepting connections
+/*! Select a pseudo-random SGSN for a given TLLI, ignoring any SGSN that is not accepting connections
  *  \param[in] cfg The gbproxy configuration
  *  \param[in] sgsn_avoid If not NULL then avoid this SGSN when selecting a new one. Use for load redistribution
  *  \param[in] tlli The tlli to choose an SGSN for. The same tlli will map to the same SGSN as long as no SGSN is
