@@ -897,6 +897,8 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 	struct bssgp_rim_routing_info dest_ri;
 	struct bssgp_rim_routing_info src_ri;
 	int rc;
+	char ri_src_str[64];
+	char ri_dest_str[64];
 
 	rc = bssgp_parse_rim_ri(&dest_ri, TLVP_VAL(&tp[0], BSSGP_IE_RIM_ROUTING_INFO),
 				TLVP_LEN(&tp[0], BSSGP_IE_RIM_ROUTING_INFO));
@@ -938,8 +940,10 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 			/* TODO: Also check if dest_cell->bss_bvc is RIM-capable (see also above). If not we should
 			 * respond with a BSSGP STATUS message as well because it also would make no sense to try
 			 * routing the RIM message to the next RIM-capable SGSN. */
-			LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to peer (nsei=%u) RIM-PDU: src=%s, dest=%s\n", log_pfx, pdut_name,
-			     dest_cell->bss_bvc->nse->nsei, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+			LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to peer (nsei=%u) RIM-PDU: src=%s, dest=%s\n",
+			     log_pfx, pdut_name, dest_cell->bss_bvc->nse->nsei,
+			     bssgp_rim_ri_name_buf(ri_src_str, sizeof(ri_src_str), &src_ri),
+			     bssgp_rim_ri_name_buf(ri_dest_str, sizeof(ri_dest_str), &dest_ri));
 			return gbprox_relay2peer(msg, dest_cell->bss_bvc, 0);
 		}
 	}
@@ -954,8 +958,10 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 		     pdut_name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
 		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
 	}
-	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n", log_pfx, pdut_name,
-	     sgsn->nse->nsei, sgsn->name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n",
+	     log_pfx, pdut_name, sgsn->nse->nsei, sgsn->name,
+	     bssgp_rim_ri_name_buf(ri_src_str, sizeof(ri_src_str), &src_ri),
+	     bssgp_rim_ri_name_buf(ri_dest_str, sizeof(ri_dest_str), &dest_ri));
 
 	return gbprox_relay2nse(msg, sgsn->nse, 0);
 }
@@ -1216,6 +1222,8 @@ static int gbprox_rx_rim_from_sgsn(struct tlv_parsed *tp, struct gbproxy_nse *ns
 	struct bssgp_rim_routing_info dest_ri;
 	struct bssgp_rim_routing_info src_ri;
 	int rc;
+	char ri_src_str[64];
+	char ri_dest_str[64];
 
 	/* TODO: Reply with STATUS if BSSGP didn't negotiate RIM feature, see also comments in
 	   gbprox_rx_rim_from_bss() */
@@ -1253,8 +1261,10 @@ static int gbprox_rx_rim_from_sgsn(struct tlv_parsed *tp, struct gbproxy_nse *ns
 	sgsn = gbproxy_sgsn_by_nsei(nse->cfg, nse->nsei);
 	OSMO_ASSERT(sgsn);
 
-	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying from SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n", log_pfx, pdut_name,
-	     sgsn->nse->nsei, sgsn->name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
+	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying from SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n",
+	     log_pfx, pdut_name, sgsn->nse->nsei, sgsn->name,
+	     bssgp_rim_ri_name_buf(ri_src_str, sizeof(ri_src_str), &src_ri),
+	     bssgp_rim_ri_name_buf(ri_dest_str, sizeof(ri_dest_str), &dest_ri));
 
 	return gbprox_relay2peer(msg, dest_cell->bss_bvc, 0);
 }
