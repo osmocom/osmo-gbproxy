@@ -283,6 +283,7 @@ DEFUN_ATTR(cfg_sgsn_nri_add, cfg_sgsn_nri_add_cmd,
 	struct gbproxy_sgsn *sgsn = vty->index;
 	struct gbproxy_sgsn *other_sgsn;
 	bool before;
+	bool overlaps = false;
 	int rc;
 	const char *message;
 	struct osmo_nri_range add_range;
@@ -307,13 +308,17 @@ DEFUN_ATTR(cfg_sgsn_nri_add, cfg_sgsn_nri_add_cmd,
 		if (osmo_nri_range_overlaps_ranges(&add_range, other_sgsn->pool.nri_ranges)) {
 			uint16_t nsei = sgsn->nse->nsei;
 			uint16_t other_nsei = other_sgsn->nse->nsei;
+			overlaps = true;
 			NRI_WARN(sgsn, "NRI range [%d..%d] overlaps between NSE %05d and NSE %05d."
 				 " For overlaps, NSE %05d has higher priority than NSE %05d",
 				 add_range.first, add_range.last, nsei, other_nsei,
 				 before ? other_nsei : nsei, before ? nsei : other_nsei);
 		}
 	}
-	return CMD_SUCCESS;
+	if (overlaps)
+		return CMD_WARNING;
+	else
+		return CMD_SUCCESS;
 }
 
 DEFUN_ATTR(cfg_sgsn_nri_del, cfg_sgsn_nri_del_cmd,
