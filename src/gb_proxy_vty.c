@@ -276,7 +276,7 @@ DEFUN(cfg_sgsn_name,
 
 DEFUN_ATTR(cfg_sgsn_nri_add, cfg_sgsn_nri_add_cmd,
 	   "nri add <0-32767> [<0-32767>]",
-	   NRI_STR "Add NRI value or range to the NRI mapping for this MSC\n"
+	   NRI_STR "Add NRI value or range to the NRI mapping for this SGSN\n"
 	   NRI_FIRST_LAST_STR,
 	   CMD_ATTR_IMMEDIATE)
 {
@@ -318,7 +318,7 @@ DEFUN_ATTR(cfg_sgsn_nri_add, cfg_sgsn_nri_add_cmd,
 
 DEFUN_ATTR(cfg_sgsn_nri_del, cfg_sgsn_nri_del_cmd,
 	   "nri del <0-32767> [<0-32767>]",
-	   NRI_STR "Remove NRI value or range from the NRI mapping for this MSC\n"
+	   NRI_STR "Remove NRI value or range from the NRI mapping for this SGSN\n"
 	   NRI_FIRST_LAST_STR,
 	   CMD_ATTR_IMMEDIATE)
 {
@@ -348,10 +348,10 @@ DEFUN_ATTR(cfg_sgsn_allow_attach, cfg_sgsn_allow_attach_cmd,
 DEFUN_ATTR(cfg_sgsn_no_allow_attach, cfg_sgsn_no_allow_attach_cmd,
 	   "no allow-attach",
 	   NO_STR
-	   "Do not assign new subscribers to this MSC."
-	   " Useful if an MSC in an MSC pool is configured to off-load subscribers."
-	   " The MSC will still be operational for already IMSI-Attached subscribers,"
-	   " but the NAS node selection function will skip this MSC for new subscribers\n",
+	   "Do not assign new subscribers to this SGSN."
+	   " Useful if an SGSN in an SGSN pool is configured to off-load subscribers."
+	   " The SGSN will still be operational for already IMSI-Attached subscribers,"
+	   " but the NAS node selection function will skip this SGSN for new subscribers\n",
 	   CMD_ATTR_IMMEDIATE)
 {
 	struct gbproxy_sgsn *sgsn = vty->index;
@@ -442,7 +442,7 @@ DEFUN_ATTR(cfg_gbproxy_nri_null_add,
 DEFUN_ATTR(cfg_gbproxy_nri_null_del,
 	   cfg_gbproxy_nri_null_del_cmd,
 	   "nri null del <0-32767> [<0-32767>]",
-	   NRI_STR NULL_NRI_STR "Remove NRI value or range from the NRI mapping for this MSC\n"
+	   NRI_STR NULL_NRI_STR "Remove NULL-NRI value (or range)\n"
 	   NRI_FIRST_LAST_STR,
 	   CMD_ATTR_IMMEDIATE)
 {
