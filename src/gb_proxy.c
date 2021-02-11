@@ -37,7 +37,7 @@
 #include <osmocom/core/talloc.h>
 #include <osmocom/core/select.h>
 #include <osmocom/core/rate_ctr.h>
-#include <osmocom/core/signal.h> 
+#include <osmocom/core/signal.h>
 #include <osmocom/core/stats.h>
 #include <osmocom/core/utils.h>
 
