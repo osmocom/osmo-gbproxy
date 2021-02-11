@@ -43,7 +43,6 @@
 #include <osmocom/gprs/gprs_bssgp.h>
 
 #include "debug.h"
-#include "vty.h"
 #include <osmocom/sgsn/gb_proxy.h>
 
 #include <osmocom/ctrl/control_vty.h>

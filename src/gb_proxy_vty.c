@@ -40,7 +40,6 @@
 
 #include "debug.h"
 #include <osmocom/sgsn/gb_proxy.h>
-#include "vty.h"
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/logging.h>
@@ -65,6 +64,11 @@ static struct gbproxy_config *g_cfg = NULL;
 /*
  * vty code for gbproxy below
  */
+enum gbproxy_vty_node {
+	GBPROXY_NODE = _LAST_OSMOVTY_NODE + 1,
+	SGSN_NODE,
+};
+
 static struct cmd_node gbproxy_node = {
 	GBPROXY_NODE,
 	"%s(config-gbproxy)# ",

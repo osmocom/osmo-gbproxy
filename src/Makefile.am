@@ -37,5 +37,4 @@ osmo_gbproxy_LDADD = \
 
 noinst_HEADERS = \
 	debug.h \
-	vty.h \
 	$(NULL)
