@@ -84,9 +84,25 @@ static const struct rate_ctr_group_desc global_ctrg_desc = {
 static int gbprox_relay2peer(struct msgb *old_msg, struct gbproxy_bvc *bvc,
 			     uint16_t ns_bvci);
 
+int tx_status(struct gbproxy_nse *nse, uint16_t ns_bvci, enum gprs_bssgp_cause cause, const uint16_t *bvci, const struct msgb *old_msg)
+{
+	int rc;
 
-/* generate BVC-STATUS message with cause value derived from TLV-parser error */
-static int tx_status_from_tlvp(enum osmo_tlv_parser_error tlv_p_err, struct msgb *orig_msg)
+	struct msgb *msg = bssgp2_enc_status(cause, bvci, old_msg, nse->max_sdu_len);
+	if (!msg) {
+		LOGPNSE(nse, LOGL_NOTICE, "Unable to encode STATUS message\n");
+		return -ENOMEM;
+	}
+
+	rc = bssgp2_nsi_tx_ptp(nse->cfg->nsi, nse->nsei, ns_bvci, msg, 0);
+	if (rc < 0)
+		LOGPNSE(nse, LOGL_NOTICE, "Unable to send STATUS message\n");
+	return rc;
+}
+
+/* generate BVC-STATUS mess
+age with cause value derived from TLV-parser error */
+static int tx_status_from_tlvp(struct gbproxy_nse *nse, enum osmo_tlv_parser_error tlv_p_err, struct msgb *orig_msg)
 {
 	uint8_t bssgp_cause;
 	switch (tlv_p_err) {
@@ -96,7 +112,7 @@ static int tx_status_from_tlvp(enum osmo_tlv_parser_error tlv_p_err, struct msgb
 	default:
 		bssgp_cause = BSSGP_CAUSE_PROTO_ERR_UNSPEC;
 	}
-	return bssgp_tx_status(bssgp_cause, NULL, orig_msg);
+	return tx_status(nse, msgb_bvci(orig_msg), bssgp_cause, NULL, orig_msg);
 }
 
 /* strip off the NS header */
@@ -380,31 +396,31 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 
 	if (ns_bvci == 0 || ns_bvci == 1) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s BVCI=%05u is not PTP\n", log_pfx, ns_bvci);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(bgph->pdu_type) & BSSGP_PDUF_PTP)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in PTP BVC\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(bgph->pdu_type) & BSSGP_PDUF_UL)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in uplink direction\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	bss_bvc = gbproxy_bvc_by_bvci(nse, ns_bvci);
 	if (!bss_bvc) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s - Didn't find BVC for PTP message, discarding\n",
 		     log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
 	}
 
 	/* UL_UNITDATA has a different header than all other uplink PDUs */
 	if (bgph->pdu_type == BSSGP_PDUT_UL_UNITDATA) {
 		const struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 		if (msgb_bssgp_len(msg) < sizeof(*budh))
-			return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, bgph->pdu_type, budh->data,
 					 msgb_bssgp_len(msg) - sizeof(*budh), 0, 0, DGPRS, log_pfx);
 		/* populate TLLI from the fixed headser into the TLV-parsed array so later code
@@ -417,7 +433,7 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	}
 	if (rc < 0) {
 		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
-		return tx_status_from_tlvp(rc, msg);
+		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
 	msgb_bcid(msg) = (void *)&tp;
@@ -505,17 +521,17 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 
 	if (ns_bvci == 0 || ns_bvci == 1) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s BVCI is not PTP\n", log_pfx);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(bgph->pdu_type) & BSSGP_PDUF_PTP)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in PTP BVC\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(bgph->pdu_type) & BSSGP_PDUF_DL)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in downlink direction\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	sgsn_bvc = gbproxy_bvc_by_bvci(nse, ns_bvci);
@@ -523,20 +539,20 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s - Didn't find BVC for for PTP message, discarding\n",
 		     log_pfx, pdut_name);
 		rate_ctr_inc(&nse->cfg->ctrg-> ctr[GBPROX_GLOB_CTR_INV_BVCI]);
-		return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
 	}
 
 	if (!bssgp_bvc_fsm_is_unblocked(sgsn_bvc->fi)) {
 		LOGPBVC(sgsn_bvc, LOGL_NOTICE, "Rx %s: Dropping on blocked BVC\n", pdut_name);
 		rate_ctr_inc(&sgsn_bvc->ctrg->ctr[GBPROX_PEER_CTR_DROPPED]);
-		return bssgp_tx_status(BSSGP_CAUSE_BVCI_BLOCKED, &ns_bvci, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_BVCI_BLOCKED, &ns_bvci, msg);
 	}
 
 	/* DL_UNITDATA has a different header than all other uplink PDUs */
 	if (bgph->pdu_type == BSSGP_PDUT_DL_UNITDATA) {
 		const struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
 		if (msgb_bssgp_len(msg) < sizeof(*budh))
-			return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, bgph->pdu_type, budh->data,
 					 msgb_bssgp_len(msg) - sizeof(*budh), 0, 0, DGPRS, log_pfx);
 		/* populate TLLI from the fixed headser into the TLV-parsed array so later code
@@ -549,7 +565,7 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	}
 	if (rc < 0) {
 		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
-		return tx_status_from_tlvp(rc, msg);
+		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
 	msgb_bcid(msg) = (void *)&tp;
@@ -858,7 +874,7 @@ static int rx_bvc_reset_from_bss(struct gbproxy_nse *nse, struct msgb *msg, stru
 			if (!nse_new) {
 				LOGP(DGPRS, LOGL_NOTICE, "NSE(%05u) Got PtP BVC reset before signalling reset for "
 					"BVCI=%05u\n", bvci, nsei);
-				bssgp_tx_status(BSSGP_CAUSE_PDU_INCOMP_STATE, NULL, msg);
+				tx_status(nse, ns_bvci, BSSGP_CAUSE_PDU_INCOMP_STATE, NULL, msg);
 				return 0;
 			}
 
@@ -895,25 +911,26 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 	int rc;
 	char ri_src_str[64];
 	char ri_dest_str[64];
+	uint16_t ns_bvci = msgb_bvci(msg);
 
 	rc = bssgp_parse_rim_ri(&dest_ri, TLVP_VAL(&tp[0], BSSGP_IE_RIM_ROUTING_INFO),
 				TLVP_LEN(&tp[0], BSSGP_IE_RIM_ROUTING_INFO));
 	if (rc < 0) {
 		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse destination RIM routing info\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 	}
 	rc = bssgp_parse_rim_ri(&src_ri, TLVP_VAL(&tp[1], BSSGP_IE_RIM_ROUTING_INFO),
 				TLVP_LEN(&tp[1], BSSGP_IE_RIM_ROUTING_INFO));
 	if (rc < 0) {
 		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse source RIM routing info\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 	}
 
 	/* Since gbproxy is 2G only we do not expect to get RIM messages only from GERAN cells. */
 	if (src_ri.discr != BSSGP_RIM_ROUTING_INFO_GERAN) {
 		LOGP(DGPRS, LOGL_ERROR, "%s %s source RIM routing info is not GERAN (%s)\n", log_pfx, pdut_name,
 		     bssgp_rim_ri_name(&src_ri));
-		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
 	}
 
 	/* Lookup source cell to make sure that the source RIM routing information actually belongs
@@ -922,7 +939,7 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 	if (!src_cell) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s cannot find cell for source RIM routing info (%s)\n", log_pfx,
 		     pdut_name, bssgp_rim_ri_name(&src_ri));
-		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
 	}
 
 	/* TODO: Use bssgp_bvc_get_features_negotiated(src_cell->bss_bvc->fi) to check if the the BSS sided BVC actually
@@ -952,7 +969,7 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 		LOGP(DGPRS, LOGL_NOTICE,
 		     "%s %s cannot route RIM message (%s to %s) since no RIM capable SGSN is found!\n", log_pfx,
 		     pdut_name, bssgp_rim_ri_name(&src_ri), bssgp_rim_ri_name(&dest_ri));
-		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
 	}
 	LOGP(DLBSSGP, LOGL_DEBUG, "%s %s relaying to SGSN(%05u/%s) RIM-PDU: src=%s, dest=%s\n",
 	     log_pfx, pdut_name, sgsn->nse->nsei, sgsn->name,
@@ -982,24 +999,24 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 
 	if (ns_bvci != 0 && ns_bvci != 1) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s BVCI=%05u is not signalling\n", log_pfx, pdut_name, ns_bvci);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(pdu_type) & BSSGP_PDUF_SIG)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in signalling BVC\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(pdu_type) & BSSGP_PDUF_UL)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in uplink direction\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, ARRAY_SIZE(tp), pdu_type, bgph->data, data_len, 0, 0,
 				 DGPRS, log_pfx);
 	if (rc < 0) {
 		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
-		return tx_status_from_tlvp(rc, msg);
+		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
 	msgb_bcid(msg) = (void *)tp;
@@ -1082,7 +1099,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
 		nse = gbproxy_nse_by_imsi(nse->cfg, mi.imsi);
 		if (!nse) {
-			return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 		}
 		OSMO_ASSERT(nse->sgsn_facing);
 		rc = gbprox_relay2nse(msg, nse, 0);
@@ -1097,7 +1114,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 err_no_bvc:
 	LOGPNSE(nse, LOGL_ERROR, "Rx %s: cannot find BVC for BVCI=%05u\n", pdut_name, ptp_bvci);
 	rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_INV_NSEI]);
-	return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+	return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 }
 
 /* Receive paging request from SGSN, we need to relay to proper BSS */
@@ -1201,7 +1218,7 @@ static int rx_bvc_reset_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, str
 		if (!from_bvc) {
 			LOGPNSE(nse, LOGL_ERROR, "Rx BVC-RESET BVCI=%05u: Cannot find BVC\n", ptp_bvci);
 			rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_INV_BVCI]);
-			return bssgp_tx_status(BSSGP_CAUSE_UNKNOWN_BVCI, &ptp_bvci, msg);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ptp_bvci, msg);
 		}
 		osmo_fsm_inst_dispatch(from_bvc->fi, BSSGP_BVCFSM_E_RX_RESET, msg);
 	}
@@ -1220,6 +1237,7 @@ static int gbprox_rx_rim_from_sgsn(struct tlv_parsed *tp, struct gbproxy_nse *ns
 	int rc;
 	char ri_src_str[64];
 	char ri_dest_str[64];
+	uint16_t ns_bvci = msgb_bvci(msg);
 
 	/* TODO: Reply with STATUS if BSSGP didn't negotiate RIM feature, see also comments in
 	   gbprox_rx_rim_from_bss() */
@@ -1228,20 +1246,20 @@ static int gbprox_rx_rim_from_sgsn(struct tlv_parsed *tp, struct gbproxy_nse *ns
 				TLVP_LEN(&tp[0], BSSGP_IE_RIM_ROUTING_INFO));
 	if (rc < 0) {
 		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse destination RIM routing info\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 	}
 	rc = bssgp_parse_rim_ri(&src_ri, TLVP_VAL(&tp[1], BSSGP_IE_RIM_ROUTING_INFO),
 				TLVP_LEN(&tp[1], BSSGP_IE_RIM_ROUTING_INFO));
 	if (rc < 0) {
 		LOGP(DGPRS, LOGL_ERROR, "%s %s cannot parse source RIM routing info\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 	}
 
 	/* Since gbproxy is 2G only we do not expect to get RIM messages that target non-GERAN cells. */
 	if (dest_ri.discr != BSSGP_RIM_ROUTING_INFO_GERAN) {
 		LOGP(DGPRS, LOGL_ERROR, "%s %s destination RIM routing info is not GERAN (%s)\n", log_pfx, pdut_name,
 		     bssgp_rim_ri_name(&dest_ri));
-		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
 	}
 
 	/* Lookup destination cell */
@@ -1249,7 +1267,7 @@ static int gbprox_rx_rim_from_sgsn(struct tlv_parsed *tp, struct gbproxy_nse *ns
 	if (!dest_cell) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s cannot find cell for destination RIM routing info (%s)\n", log_pfx,
 		     pdut_name, bssgp_rim_ri_name(&dest_ri));
-		return bssgp_tx_status(BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKN_RIM_AI, NULL, msg);
 	}
 
 	/* TODO: Check if the BVC of the destination cell actually did negotiate RIM support, see also comments
@@ -1288,17 +1306,17 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 
 	if (ns_bvci != 0 && ns_bvci != 1) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s BVCI=%05u is not signalling\n", log_pfx, ns_bvci);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(pdu_type) & BSSGP_PDUF_SIG)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in signalling BVC\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	if (!(bssgp_pdu_type_flags(pdu_type) & BSSGP_PDUF_DL)) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s not allowed in downlink direction\n", log_pfx, pdut_name);
-		return bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 	}
 
 	data_len = msgb_bssgp_len(msg) - sizeof(*bgph);
@@ -1306,7 +1324,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, ARRAY_SIZE(tp), pdu_type, bgph->data, data_len, 0, 0,
 				 DGPRS, log_pfx);
 	if (rc < 0) {
-		rc = tx_status_from_tlvp(rc, msg);
+		rc = tx_status_from_tlvp(nse, rc, msg);
 		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]);
 		return rc;
 	}
@@ -1396,7 +1414,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		if (!nse_peer) {
 			LOGPNSE(nse, LOGL_ERROR, "Rx %s: Cannot find NSE\n", pdut_name);
 			/* TODO: Counter */
-			return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 		}
 		/* Delete the entry after we're done */
 		gbproxy_tlli_cache_remove(cfg, tlli);
@@ -1421,7 +1439,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	default:
 		LOGPNSE(nse, LOGL_NOTICE, "Rx %s: Not supported\n", pdut_name);
 		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]);
-		rc = bssgp_tx_status(BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		rc = tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
 
@@ -1430,7 +1448,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 err_no_bvc:
 	LOGPNSE(nse, LOGL_ERROR, "Rx %s: Cannot find BVC\n", pdut_name);
 	rate_ctr_inc(&cfg->ctrg-> ctr[GBPROX_GLOB_CTR_INV_RAI]);
-	return bssgp_tx_status(BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+	return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 }
 
 
@@ -1462,12 +1480,12 @@ int gbprox_rcvmsg(void *ctx, struct msgb *msg)
 	uint16_t nsei = msgb_nsei(msg);
 	struct gbproxy_nse *nse;
 
-	/* ensure minimum length to decode PCU type */
-	if (msgb_bssgp_len(msg) < sizeof(struct bssgp_normal_hdr))
-		return bssgp_tx_status(BSSGP_CAUSE_SEM_INCORR_PDU, NULL, msg);
-
 	nse = gbproxy_nse_by_nsei(cfg, nsei, NSE_F_SGSN);
 	if (nse) {
+		/* ensure minimum length to decode PDU type */
+		if (msgb_bssgp_len(msg) < sizeof(struct bssgp_normal_hdr))
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_SEM_INCORR_PDU, NULL, msg);
+
 		if (ns_bvci == 0 || ns_bvci == 1)
 			return gbprox_rx_sig_from_sgsn(nse, msg, ns_bvci);
 		else
@@ -1480,6 +1498,10 @@ int gbprox_rcvmsg(void *ctx, struct msgb *msg)
 		nse = gbproxy_nse_alloc(cfg, nsei, false);
 	}
 	if (nse) {
+		/* ensure minimum length to decode PDU type */
+		if (msgb_bssgp_len(msg) < sizeof(struct bssgp_normal_hdr))
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_SEM_INCORR_PDU, NULL, msg);
+
 		if (ns_bvci == 0 || ns_bvci == 1)
 			return gbprox_rx_sig_from_bss(nse, msg, ns_bvci);
 		else
