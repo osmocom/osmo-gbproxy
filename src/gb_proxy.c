@@ -185,16 +185,12 @@ static int gbprox_relay2nse(struct msgb *old_msg, struct gbproxy_nse *nse,
 	/* create a copy of the message so the old one can
 	 * be free()d safely when we return from gbprox_rcvmsg() */
 	struct gprs_ns2_inst *nsi = nse->cfg->nsi;
-	struct osmo_gprs_ns2_prim nsp = {};
 	struct msgb *msg = bssgp_msgb_copy(old_msg, "msgb_relay2nse");
-	uint32_t tlli;
+	uint32_t tlli = 0;
 	int rc;
 
 	DEBUGP(DGPRS, "NSE(%05u/%s)-BVC(%05u/??) proxying to NSE(%05u/%s)\n", msgb_nsei(msg),
 	       !nse->sgsn_facing ? "SGSN" : "BSS", ns_bvci, nse->nsei, nse->sgsn_facing ? "SGSN" : "BSS");
-
-	nsp.bvci = ns_bvci;
-	nsp.nsei = nse->nsei;
 
 	/* Strip the old NS header, it will be replaced with a new one */
 	strip_ns_hdr(msg);
@@ -204,12 +200,9 @@ static int gbprox_relay2nse(struct msgb *old_msg, struct gbproxy_nse *nse,
 	 * all BSSGP UNITDATA PDUs related to an MS shall be passed with
 	 * the same LSP, e.g. the LSP contains the MS's TLLI, to the
 	 * underlying network service. */
-	if (gprs_gb_parse_tlli(msgb_data(msg), msgb_length(msg), &tlli) == 1)
-		nsp.u.unitdata.link_selector = tlli;
+	gprs_gb_parse_tlli(msgb_data(msg), msgb_length(msg), &tlli);
 
-	osmo_prim_init(&nsp.oph, SAP_NS, GPRS_NS2_PRIM_UNIT_DATA,
-		       PRIM_OP_REQUEST, msg);
-	rc = gprs_ns2_recv_prim(nsi, &nsp.oph);
+	rc = bssgp2_nsi_tx_ptp(nsi, nse->nsei, ns_bvci, msg, tlli);
 	/* FIXME: We need a counter group for gbproxy_nse */
 	//if (rc < 0)
 	//	rate_ctr_inc(&bvc->ctrg->ctr[GBPROX_PEER_CTR_TX_ERR]);
