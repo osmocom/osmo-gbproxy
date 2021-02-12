@@ -241,6 +241,7 @@ DEFUN(cfg_sgsn_nsei,
 		bvc->fi = bssgp_bvc_fsm_alloc_sig_bss(bvc, nse->cfg->nsi, nsei, features);
 		if (!bvc->fi)
 			goto free_bvc;
+		bssgp_bvc_fsm_set_max_pdu_len(bvc->fi, nse->max_sdu_len);
 		bssgp_bvc_fsm_set_ops(bvc->fi, &sgsn_sig_bvc_fsm_ops, bvc);
 		osmo_fsm_inst_dispatch(bvc->fi, BSSGP_BVCFSM_E_REQ_RESET, &cause);
 	}

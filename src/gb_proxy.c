@@ -684,6 +684,7 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 			sgsn_bvc->fi = bssgp_bvc_fsm_alloc_ptp_bss(sgsn_bvc, cfg->nsi, sgsn_nse->nsei,
 								   bvci, ra_id, cell_id);
 			OSMO_ASSERT(sgsn_bvc->fi);
+			bssgp_bvc_fsm_set_max_pdu_len(sgsn_bvc->fi, sgsn_nse->max_sdu_len);
 			bssgp_bvc_fsm_set_ops(sgsn_bvc->fi, &sgsn_ptp_bvc_fsm_ops, sgsn_bvc);
 
 			gbproxy_cell_add_sgsn_bvc(bvc->cell, sgsn_bvc);
@@ -828,6 +829,7 @@ static int rx_bvc_reset_from_bss(struct gbproxy_nse *nse, struct msgb *msg, stru
 				gbproxy_bvc_free(from_bvc);
 				return -ENOMEM;
 			}
+			bssgp_bvc_fsm_set_max_pdu_len(from_bvc->fi, nse->max_sdu_len);
 			bssgp_bvc_fsm_set_ops(from_bvc->fi, &bss_sig_bvc_fsm_ops, from_bvc);
 		}
 	} else {
@@ -844,6 +846,7 @@ static int rx_bvc_reset_from_bss(struct gbproxy_nse *nse, struct msgb *msg, stru
 				gbproxy_bvc_free(from_bvc);
 				return -ENOMEM;
 			}
+			bssgp_bvc_fsm_set_max_pdu_len(from_bvc->fi, nse->max_sdu_len);
 			bssgp_bvc_fsm_set_ops(from_bvc->fi, &bss_ptp_bvc_fsm_ops, from_bvc);
 		}
 #if 0
@@ -1500,6 +1503,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 {
 	/* TODO: bss nsei available/unavailable  bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK, nsvc->nsei, bvc->bvci, 0);
 	 * TODO: sgsn nsei available/unavailable
+	 * TODO: Update MTU
 	 */
 
 	struct gbproxy_bvc *bvc;

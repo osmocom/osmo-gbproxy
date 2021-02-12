@@ -447,6 +447,7 @@ struct gbproxy_nse *gbproxy_nse_alloc(struct gbproxy_config *cfg, uint16_t nsei,
 		return NULL;
 
 	nse->nsei = nsei;
+	nse->max_sdu_len = DEFAULT_NSE_SDU;
 	nse->cfg = cfg;
 	nse->sgsn_facing = sgsn_facing;
 

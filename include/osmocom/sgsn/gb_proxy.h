@@ -11,6 +11,7 @@
 #include <osmocom/gsm/gsm48.h>
 #include <osmocom/gsm/protocol/gsm_23_003.h>
 
+#include <osmocom/gprs/frame_relay.h>
 #include <osmocom/gprs/gprs_ns2.h>
 #include <osmocom/vty/command.h>
 
@@ -20,6 +21,9 @@
 
 #define GBPROXY_INIT_VU_GEN_TX 256
 #define GBPROXY_MAX_NR_SGSN	16
+
+/* Set conservative default BSSGP SDU (FR SDU - size of NS UNITDATA IEs) */
+#define DEFAULT_NSE_SDU (FRAME_RELAY_SDU - 4)
 
 /* BVCI uses 16 bits */
 #define BVC_LOG_CTX_FLAG (1<<17)
@@ -160,6 +164,9 @@ struct gbproxy_nse {
 
 	/* NSEI of the NSE */
 	uint16_t nsei;
+
+	/* Maximum side of the NS-UNITDATA NS SDU that can be transported by the NSE */
+	uint16_t max_sdu_len;
 
 	/* Are we facing towards a SGSN (true) or BSS (false) */
 	bool sgsn_facing;
