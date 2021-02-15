@@ -1,4 +1,4 @@
-osmo-gbproxy (0.0.1) unstable; urgency=medium
+osmo-gbproxy (1:0.0.1) unstable; urgency=medium
 
   [ Harald Welte ]
   * Further clean-up in osmo-sgsn -> osmo-gbproxy migration
@@ -11,7 +11,7 @@ osmo-gbproxy (0.0.1) unstable; urgency=medium
 
  -- Oliver Smith <osmith@sysmocom.de>  Fri, 05 Feb 2021 11:42:48 +0100
 
-osmo-gbproxy (0.0.0) unstable; urgency=medium
+osmo-gbproxy (1:0.0.0) unstable; urgency=medium
 
   [ Neels Hofmeyr ]
   * manual: explain IuPS, add SCCP/M3UA section from common chapters
