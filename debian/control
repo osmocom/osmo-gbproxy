@@ -11,8 +11,8 @@ Build-Depends: debhelper (>=9),
                libtool,
                pkg-config,
                libtalloc-dev,
-               libosmocore-dev (>= 1.4.0),
-               osmo-gsm-manuals-dev
+               libosmocore-dev (>= 1.5.0),
+               osmo-gsm-manuals-dev (>= 1.1.0)
 Standards-Version: 3.9.8
 Vcs-Git: git://git.osmocom.org/osmo-gbproxy.git
 Vcs-Browser: https://git.osmocom.org/osmo-gbproxy

@@ -1,3 +1,36 @@
+osmo-gbproxy (1:0.1.0) unstable; urgency=medium
+
+  [ Philipp Maier ]
+  * gb_proxy_ctrl: use mcc-mnc-lac-rac notation instead mcc,mnc,lac,rac
+  * gb_proxy: simplify raid data storage
+  * gb_proxy_peer: Remove unused function gbproxy_cell_by_bvci_or_new
+  * gb_proxy_peer: Require ra_id and cid in gbproxy_cell_alloc
+  * gb_proxy: extend TLV parser
+  * gb_proxy: add support for relaying BSSGP RIM messages
+  * gb_proxy: fix wrong usage of bssgp_rim_ri_name()
+
+  [ Daniel Willmann ]
+  * gb_proxy_peer: Add Function to get gbproxy cell by cell id
+  * gbproxy_vty: Fix NRI VTY help MSC->SGSN
+  * gbproxy_vty: Fix NRI overlap behaviour to match osmo-bsc
+  * Various comment/whitespace changes
+  * Remove trailing whitespace
+  * gbproxy: Use bssgp2_nsi_tx_ptp in gbprox_relay2nse
+  * Remove unused log categories
+  * Move vty node into gbproxy_vty.c
+  * Add SDU length for an NSE (== BSSGP PDU size)
+  * gbproxy: Use bssgp2_enc_status when sending STATUS
+
+  [ Pau Espin Pedrol ]
+  * Drop c-ares references
+  * debian/copyright: Drop osmo-sgsn.git leftover files from list
+  * gitignore: Ignore autofoo files *~
+
+  [ Oliver Smith ]
+  * d/changelog: set epoch=1
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Wed, 24 Feb 2021 16:54:13 +0100
+
 osmo-gbproxy (1:0.0.1) unstable; urgency=medium
 
   [ Harald Welte ]
