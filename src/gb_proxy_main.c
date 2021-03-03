@@ -55,6 +55,7 @@
 #include <osmocom/vty/stats.h>
 #include <osmocom/vty/ports.h>
 #include <osmocom/vty/misc.h>
+#include <osmocom/vty/cpu_sched_vty.h>
 
 #include "../bscconfig.h"
 
@@ -284,6 +285,7 @@ int main(int argc, char **argv)
 	osmo_talloc_vty_add_cmds();
 	osmo_stats_vty_add_cmds();
 	osmo_fsm_vty_add_cmds();
+	osmo_cpu_sched_vty_init(tall_sgsn_ctx);
 	gbproxy_vty_init();
 
 	handle_options(argc, argv);
