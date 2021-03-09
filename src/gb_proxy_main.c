@@ -117,7 +117,7 @@ static void signal_handler(int signum)
 
 static void print_usage()
 {
-	printf("Usage: bsc_hack\n");
+	printf("Usage: osmo-gbproxy\n");
 }
 
 static void print_help()
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 	int rc;
 	struct ctrl_handle *ctrl;
 
-	tall_sgsn_ctx = talloc_named_const(NULL, 0, "nsip_proxy");
+	tall_sgsn_ctx = talloc_named_const(NULL, 0, "gb_proxy");
 	msgb_talloc_ctx_init(tall_sgsn_ctx, 0);
 	vty_info.tall_ctx = tall_sgsn_ctx;
 
