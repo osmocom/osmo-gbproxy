@@ -1523,7 +1523,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 	 */
 
 	struct gbproxy_bvc *bvc;
-	struct gbproxy_nse *sgsn_nse;
+	struct gbproxy_nse *nse;
 
 	switch (nsp->u.status.cause) {
 	case GPRS_NS2_AFF_CAUSE_SNS_FAILURE:
@@ -1532,44 +1532,54 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 
 	case GPRS_NS2_AFF_CAUSE_RECOVERY:
 		LOGP(DGPRS, LOGL_NOTICE, "NS-NSE %d became available\n", nsp->nsei);
-		sgsn_nse = gbproxy_nse_by_nsei(cfg, nsp->nsei, NSE_F_SGSN);
-		if (sgsn_nse) {
+		nse = gbproxy_nse_by_nsei(cfg, nsp->nsei, NSE_F_SGSN);
+		if (nse) {
 			// Update the NSE max SDU len
-			sgsn_nse->max_sdu_len = nsp->u.status.mtu;
+			nse->max_sdu_len = nsp->u.status.mtu;
 
 			uint8_t cause = BSSGP_CAUSE_OML_INTERV;
-			bvc = gbproxy_bvc_by_bvci(sgsn_nse, 0);
+			bvc = gbproxy_bvc_by_bvci(nse, 0);
 			if (bvc) {
-				bssgp_bvc_fsm_set_max_pdu_len(bvc->fi, sgsn_nse->max_sdu_len);
+				bssgp_bvc_fsm_set_max_pdu_len(bvc->fi, nse->max_sdu_len);
 				osmo_fsm_inst_dispatch(bvc->fi, BSSGP_BVCFSM_E_REQ_RESET, &cause);
 			}
 		}
 		break;
 	case GPRS_NS2_AFF_CAUSE_FAILURE:
-#if 0
-		if (gbproxy_is_sgsn_nsei(cfg, nsp->nsei)) {
-			/* sgsn */
-			/* TODO: BSVC: block all PtP towards bss */
+		nse = gbproxy_nse_by_nsei(cfg, nsp->nsei, NSE_F_BSS | NSE_F_SGSN);
+		if (!nse) {
+			LOGP(DGPRS, LOGL_ERROR, "Unknown NSE(%05d) became unavailable\n", nsp->nsei);
+			break;
+		}
+		if (nse->sgsn_facing) {
+			/* SGSN */
+			/* TODO: When to block all PtP towards bss? Only if all SGSN are down? */
 			rate_ctr_inc(&cfg->ctrg->
 				     ctr[GBPROX_GLOB_CTR_RESTART_RESET_SGSN]);
 		} else {
-			/* bss became unavailable
-			 * TODO: Block all BVC belonging to that NSE */
-			bvc = gbproxy_bvc_by_nsei(cfg, nsp->nsei);
-			if (!bvc) {
-				/* TODO: use primitive name + status cause name */
-				LOGP(DGPRS, LOGL_NOTICE, "Received ns2 primitive %d for unknown bvc NSEI=%u\n",
-				     nsp->u.status.cause, nsp->nsei);
-				break;
+			int i;
+			/* BSS became unavailable
+			 * Block matching PtP-BVCs on SGSN-side */
+			hash_for_each(nse->bvcs, i, bvc, list) {
+				if (bvc->bvci == 0)
+					continue;
+				/* Get BVC for each SGSN and send block request */
+				struct gbproxy_cell *cell = bvc->cell;
+				for (int j = 0; j < GBPROXY_MAX_NR_SGSN; j++) {
+					struct gbproxy_bvc *sgsn_bvc = cell->sgsn_bvc[j];
+					if (!sgsn_bvc)
+						continue;
+
+					/* Block BVC, indicate BSS equipment failure */
+					uint8_t cause = BSSGP_CAUSE_EQUIP_FAIL;
+					osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_REQ_BLOCK, &cause);
+				}
 			}
 
-			if (!bvc->blocked)
-				break;
-			hash_for_each(cfg->sgsn_nses, _sgsn, sgsn_nse, list) {
-				bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK, sgsn_nse->nsei, bvc->bvci, 0);
-			}
+
 		}
-#endif
+		/* This frees the BVCs for us as well */
+		gbproxy_nse_free(nse);
 		LOGP(DGPRS, LOGL_NOTICE, "NS-NSE %d became unavailable\n", nsp->nsei);
 		break;
 	default:
