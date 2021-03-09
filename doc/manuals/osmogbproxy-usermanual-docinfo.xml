@@ -7,6 +7,15 @@
       Initial version.
     </revremark>
   </revision>
+  <revision>
+    <revnumber>2</revnumber>
+    <date>March 05, 2021</date>
+    <authorinitials>DW</authorinitials>
+    <revremark>
+      Update configuration chapters after rewrite,
+      clarify new scope, pooling support
+    </revremark>
+  </revision>
 </revhistory>
 
 <authorgroup>
@@ -21,10 +30,20 @@
       <jobtitle>Managing Director</jobtitle>
     </affiliation>
   </author>
+  <author>
+    <firstname>Daniel</firstname>
+    <surname>Willmann</surname>
+    <email>dwillmann@sysmocom.de</email>
+    <authorinitials>DW</authorinitials>
+    <affiliation>
+      <shortaffil>sysmocom</shortaffil>
+      <orgname>sysmocom - s.f.m.c. GmbH</orgname>
+    </affiliation>
+  </author>
 </authorgroup>
 
 <copyright>
-  <year>2013-2019</year>
+  <year>2013-2021</year>
   <holder>sysmocom - s.f.m.c. GmbH</holder>
 </copyright>
 

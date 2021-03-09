@@ -18,12 +18,18 @@
             <authorinitials>hw</authorinitials>
             <revremark>Initial</revremark>
         </revision>
+        <revision>
+            <revnumber>v2</revnumber>
+            <date>26th January 2021</date>
+            <authorinitials>dw</authorinitials>
+            <revremark>OsmoGbProxy rewrite, use NS2 from libosmogb</revremark>
+        </revision>
     </revhistory>
 
     <title>OsmoGbProxy VTY Reference</title>
 
     <copyright>
-      <year>2019</year>
+      <year>2021</year>
     </copyright>
 
     <legalnotice>
