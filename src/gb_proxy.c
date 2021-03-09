@@ -1534,10 +1534,15 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 		LOGP(DGPRS, LOGL_NOTICE, "NS-NSE %d became available\n", nsp->nsei);
 		sgsn_nse = gbproxy_nse_by_nsei(cfg, nsp->nsei, NSE_F_SGSN);
 		if (sgsn_nse) {
+			// Update the NSE max SDU len
+			sgsn_nse->max_sdu_len = nsp->u.status.mtu;
+
 			uint8_t cause = BSSGP_CAUSE_OML_INTERV;
 			bvc = gbproxy_bvc_by_bvci(sgsn_nse, 0);
-			if (bvc)
+			if (bvc) {
+				bssgp_bvc_fsm_set_max_pdu_len(bvc->fi, sgsn_nse->max_sdu_len);
 				osmo_fsm_inst_dispatch(bvc->fi, BSSGP_BVCFSM_E_REQ_RESET, &cause);
+			}
 		}
 		break;
 	case GPRS_NS2_AFF_CAUSE_FAILURE:
