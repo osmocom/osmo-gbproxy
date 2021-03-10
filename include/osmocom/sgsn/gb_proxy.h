@@ -1,6 +1,4 @@
-#ifndef _GB_PROXY_H
-#define _GB_PROXY_H
-
+#pragma once
 
 #include <osmocom/core/msgb.h>
 #include <osmocom/core/timer.h>
@@ -308,5 +306,3 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_nsei_or_new(struct gbproxy_config *cfg, uin
 struct gbproxy_sgsn *gbproxy_sgsn_by_nri(struct gbproxy_config *cfg, uint16_t nri, bool *null_nri);
 struct gbproxy_sgsn *gbproxy_sgsn_by_tlli(struct gbproxy_config *cfg, struct gbproxy_sgsn *sgsn_avoid,
 					  uint32_t tlli);
-
-#endif
