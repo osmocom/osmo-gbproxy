@@ -1128,8 +1128,6 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 	int errctr = GBPROX_GLOB_CTR_PROTO_ERR_SGSN;
 	int i, j;
 
-	/* FIXME: Handle paging logic to only page each matching NSE */
-
 	if (TLVP_PRES_LEN(tp, BSSGP_IE_BVCI, 2)) {
 		uint16_t bvci = ntohs(tlvp_val16_unal(tp, BSSGP_IE_BVCI));
 		errctr = GBPROX_GLOB_CTR_OTHER_ERR;
@@ -1514,8 +1512,6 @@ int gbprox_rcvmsg(void *ctx, struct msgb *msg)
 /*  TODO: What about handling:
  * 	GPRS_NS2_AFF_CAUSE_VC_FAILURE,
 	GPRS_NS2_AFF_CAUSE_VC_RECOVERY,
-	GPRS_NS2_AFF_CAUSE_FAILURE,
-	GPRS_NS2_AFF_CAUSE_RECOVERY,
 	osmocom own causes
 	GPRS_NS2_AFF_CAUSE_SNS_CONFIGURED,
 	GPRS_NS2_AFF_CAUSE_SNS_FAILURE,
@@ -1524,8 +1520,6 @@ int gbprox_rcvmsg(void *ctx, struct msgb *msg)
 void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_prim *nsp)
 {
 	/* TODO: bss nsei available/unavailable  bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK, nsvc->nsei, bvc->bvci, 0);
-	 * TODO: sgsn nsei available/unavailable
-	 * TODO: Update MTU
 	 */
 
 	struct gbproxy_bvc *bvc;

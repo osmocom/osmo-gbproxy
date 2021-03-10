@@ -165,7 +165,7 @@ struct gbproxy_nse {
 	/* NSEI of the NSE */
 	uint16_t nsei;
 
-	/* Maximum side of the NS-UNITDATA NS SDU that can be transported by the NSE */
+	/* Maximum size of the NS-UNITDATA NS SDU that can be transported by the NSE */
 	uint16_t max_sdu_len;
 
 	/* Are we facing towards a SGSN (true) or BSS (false) */
