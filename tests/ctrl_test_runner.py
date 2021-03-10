@@ -143,28 +143,6 @@ class TestCtrlBase(unittest.TestCase):
 
         return responses
 
-class TestCtrlSGSN(TestCtrlBase):
-    def ctrl_command(self):
-        return ["./src/sgsn/osmo-sgsn", "-c",
-                "doc/examples/osmo-sgsn/osmo-sgsn.cfg"]
-
-    def ctrl_app(self):
-        return (4251, "./src/sgsn/osmo-sgsn", "OsmoSGSN", "sgsn")
-
-    def testListSubscribers(self):
-        # TODO. Add command to mark a subscriber as active
-        r = self.do_get('subscriber-list-active-v1')
-        self.assertEqual(r['mtype'], 'GET_REPLY')
-        self.assertEqual(r['var'], 'subscriber-list-active-v1')
-        self.assertEqual(r['value'], None)
-
-def add_sgsn_test(suite, workdir):
-    if not os.path.isfile(os.path.join(workdir, "src/sgsn/osmo-sgsn")):
-        print("Skipping the SGSN test")
-        return
-    test = unittest.TestLoader().loadTestsFromTestCase(TestCtrlSGSN)
-    suite.addTest(test)
-
 if __name__ == '__main__':
     import argparse
     import sys
@@ -195,6 +173,6 @@ if __name__ == '__main__':
     os.chdir(workdir)
     print("Running tests for specific control commands")
     suite = unittest.TestSuite()
-    add_sgsn_test(suite, workdir)
+    print("GbProxy has no CTRL tests yet")
     res = unittest.TextTestRunner(verbosity=verbose_level).run(suite)
     sys.exit(len(res.errors) + len(res.failures))

@@ -39,7 +39,7 @@
 #include <osmocom/gsm/gsm48.h>
 
 #include "debug.h"
-#include <osmocom/sgsn/gb_proxy.h>
+#include <osmocom/gbproxy/gb_proxy.h>
 
 #include <osmocom/vty/command.h>
 #include <osmocom/vty/logging.h>

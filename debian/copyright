@@ -22,8 +22,8 @@ Files:     .gitignore
            doc/examples/Makefile.am
            doc/examples/osmo-gbproxy/osmo-gbproxy.cfg
            include/Makefile.am
-           include/osmocom/sgsn/Makefile.am
-           include/osmocom/sgsn/gb_proxy.h
+           include/osmocom/gbproxy/Makefile.am
+           include/osmocom/gbproxy/gb_proxy.h
            m4/README
            src/Makefile.am
            src/gprs/.gitignore

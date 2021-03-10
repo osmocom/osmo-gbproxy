@@ -52,7 +52,7 @@
 #include <osmocom/gsm/gsm_utils.h>
 
 #include "debug.h"
-#include <osmocom/sgsn/gb_proxy.h>
+#include <osmocom/gbproxy/gb_proxy.h>
 
 #include <osmocom/gsm/protocol/gsm_04_08_gprs.h>
 

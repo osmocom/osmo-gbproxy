@@ -20,7 +20,7 @@
  *
  */
 
-#include <osmocom/sgsn/gb_proxy.h>
+#include <osmocom/gbproxy/gb_proxy.h>
 
 #include "debug.h"
 
