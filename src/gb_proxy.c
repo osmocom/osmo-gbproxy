@@ -1522,6 +1522,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 	/* TODO: bss nsei available/unavailable  bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK, nsvc->nsei, bvc->bvci, 0);
 	 */
 
+	int i;
 	struct gbproxy_bvc *bvc;
 	struct gbproxy_nse *nse;
 
@@ -1552,12 +1553,17 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 			break;
 		}
 		if (nse->sgsn_facing) {
+			struct hlist_node *ntmp;
 			/* SGSN */
 			/* TODO: When to block all PtP towards bss? Only if all SGSN are down? */
+			hash_for_each_safe(nse->bvcs, i, ntmp, bvc, list) {
+				if (bvc->bvci == 0)
+					continue;
+				gbproxy_bvc_free(bvc);
+			}
 			rate_ctr_inc(&cfg->ctrg->
 				     ctr[GBPROX_GLOB_CTR_RESTART_RESET_SGSN]);
 		} else {
-			int i;
 			/* BSS became unavailable
 			 * Block matching PtP-BVCs on SGSN-side */
 			hash_for_each(nse->bvcs, i, bvc, list) {
@@ -1576,10 +1582,9 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 				}
 			}
 
-
+			/* This frees the BVCs for us as well */
+			gbproxy_nse_free(nse);
 		}
-		/* This frees the BVCs for us as well */
-		gbproxy_nse_free(nse);
 		LOGP(DGPRS, LOGL_NOTICE, "NS-NSE %d became unavailable\n", nsp->nsei);
 		break;
 	default:
