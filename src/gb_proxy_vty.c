@@ -82,8 +82,9 @@ static void gbprox_vty_print_bvc(struct vty *vty, struct gbproxy_bvc *bvc)
 		vty_out(vty, "NSEI %5u, SIG-BVCI %5u [%s]%s", bvc->nse->nsei, bvc->bvci,
 			osmo_fsm_inst_state_name(bvc->fi), VTY_NEWLINE);
 	} else {
-		vty_out(vty, "NSEI %5u, PTP-BVCI %5u, RAI %s [%s]%s", bvc->nse->nsei, bvc->bvci,
-			osmo_rai_name(&bvc->cell->id.raid), osmo_fsm_inst_state_name(bvc->fi), VTY_NEWLINE);
+		vty_out(vty, "NSEI %5u, PTP-BVCI %5u, RAI %s, CellID %u [%s]%s", bvc->nse->nsei,
+			bvc->bvci, osmo_rai_name(&bvc->cell->id.raid), bvc->cell->id.cid,
+			osmo_fsm_inst_state_name(bvc->fi), VTY_NEWLINE);
 	}
 }
 
