@@ -685,26 +685,33 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 		bvc->cell->bss_bvc = bvc;
 	}
 
-	/* allocate (any missing) SGSN-side BVCs within the cell, and reset them */
+	/* Ensure we have the correct RA/CELL ID */
+	if (!gsm48_ra_equal(&bvc->cell->id.raid, ra_id)) {
+		LOGPBVC(bvc, LOGL_NOTICE, "RAID changed from %s to %s, updating cell\n", osmo_rai_name(&bvc->cell->id.raid), osmo_rai_name(ra_id));
+		memcpy(&bvc->cell->id.raid, ra_id, sizeof(*ra_id));
+	}
+	if (bvc->cell->id.cid != cell_id) {
+		LOGPBVC(bvc, LOGL_NOTICE, "CellID changed from %05d to %05d, updating cell\n", bvc->cell->id.cid, cell_id);
+		bvc->cell->id.cid = cell_id;
+	}
+
+	/* Reallocate SGSN-side BVCs of the cell, and reset them
+	 * Removing and reallocating is needed becaus the ra_id/cell_id might have changed */
 	hash_for_each(cfg->sgsn_nses, i, sgsn_nse, list) {
 		struct gbproxy_bvc *sgsn_bvc = gbproxy_bvc_by_bvci(sgsn_nse, bvci);
 		if (sgsn_bvc)
-			OSMO_ASSERT(sgsn_bvc->cell == bvc->cell || !sgsn_bvc->cell);
+			gbproxy_bvc_free(sgsn_bvc);
 
-		if (!sgsn_bvc) {
-			sgsn_bvc = gbproxy_bvc_alloc(sgsn_nse, bvci);
-			OSMO_ASSERT(sgsn_bvc);
-
-			sgsn_bvc->cell = bvc->cell;
-			memcpy(&sgsn_bvc->raid, &bvc->cell->id.raid, sizeof(sgsn_bvc->raid));
-			sgsn_bvc->fi = bssgp_bvc_fsm_alloc_ptp_bss(sgsn_bvc, cfg->nsi, sgsn_nse->nsei,
-								   bvci, ra_id, cell_id);
-			OSMO_ASSERT(sgsn_bvc->fi);
-			bssgp_bvc_fsm_set_max_pdu_len(sgsn_bvc->fi, sgsn_nse->max_sdu_len);
-			bssgp_bvc_fsm_set_ops(sgsn_bvc->fi, &sgsn_ptp_bvc_fsm_ops, sgsn_bvc);
-
-			gbproxy_cell_add_sgsn_bvc(bvc->cell, sgsn_bvc);
-		}
+		sgsn_bvc = gbproxy_bvc_alloc(sgsn_nse, bvci);
+		OSMO_ASSERT(sgsn_bvc);
+		sgsn_bvc->cell = bvc->cell;
+		memcpy(&sgsn_bvc->raid, &bvc->cell->id.raid, sizeof(sgsn_bvc->raid));
+		sgsn_bvc->fi = bssgp_bvc_fsm_alloc_ptp_bss(sgsn_bvc, cfg->nsi, sgsn_nse->nsei,
+							   bvci, ra_id, cell_id);
+		OSMO_ASSERT(sgsn_bvc->fi);
+		bssgp_bvc_fsm_set_max_pdu_len(sgsn_bvc->fi, sgsn_nse->max_sdu_len);
+		bssgp_bvc_fsm_set_ops(sgsn_bvc->fi, &sgsn_ptp_bvc_fsm_ops, sgsn_bvc);
+		gbproxy_cell_add_sgsn_bvc(bvc->cell, sgsn_bvc);
 	}
 
 	/* Trigger outbound BVC-RESET procedure toward each SGSN */
