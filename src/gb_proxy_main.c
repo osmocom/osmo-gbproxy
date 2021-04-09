@@ -280,6 +280,7 @@ int main(int argc, char **argv)
 
 	vty_info.copyright = openbsc_copyright;
 	vty_init(&vty_info);
+	ctrl_vty_init(tall_sgsn_ctx);
 	logging_vty_add_cmds();
 	osmo_talloc_vty_add_cmds();
 	osmo_stats_vty_add_cmds();
