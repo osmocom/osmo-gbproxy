@@ -67,6 +67,7 @@ doc/manuals/generated/
 doc/manuals/osmomsc-usermanual.xml
 doc/manuals/common
 doc/manuals/build
+doc/manuals/vty/gbproxy_vty_reference.xml
 
 contrib/osmo-gbproxy.spec
 
