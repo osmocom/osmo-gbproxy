@@ -23,7 +23,7 @@ include::{srcdir}/chapters/gbproxy-configuration.adoc[]
 
 include::{srcdir}/chapters/gbproxy-sgsnpool.adoc[]
 
-include::./common/chapters/gb-variants.adoc[]
+include::./common/chapters/gb-ns2.adoc[]
 
 include::./common/chapters/gb.adoc[]
 
