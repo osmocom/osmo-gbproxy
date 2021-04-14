@@ -1,18 +1,22 @@
-#include "osmocom/core/byteswap.h"
+#include <osmocom/core/byteswap.h>
+#include <osmocom/gbproxy/gb_proxy_igpp_fsm.h>
 #include <osmocom/gbproxy/gb_proxy_igpp.h>
 #include <osmocom/gbproxy/gb_proxy.h>
 #include <osmocom/gprs/gprs_bssgp.h>
 #include <osmocom/gsm/tlv.h>
 
-static const uint8_t ping_ies[] = {};
-static const uint8_t pong_ies[] = {};
+#include "debug.h"
+
+/* FIXME: Ping with role per-NSE or ping per server but with disconnected mode of operations? */
+static const uint8_t ping_ies[] = { IGPP_IE_ROLE, IGPP_IE_NSEI };
+static const uint8_t pong_ies[] = { IGPP_IE_ROLE, IGPP_IE_NSEI };
 static const uint8_t reset_ies[] = {};
 static const uint8_t reset_ack_ies[] = {};
 static const uint8_t promote_ies[] = { IGPP_IE_NSEI };
 static const uint8_t promote_ack_ies[] = { IGPP_IE_NSEI };
 static const uint8_t demote_ies[] = { IGPP_IE_NSEI };
 static const uint8_t demote_ack_ies[] = { IGPP_IE_NSEI };
-static const uint8_t create_bvc_ies[] = { IGPP_IE_ROLE, IGPP_IE_NSEI, IGPP_IE_BVCI, IGPP_IE_CELL_ID};
+static const uint8_t create_bvc_ies[] = { IGPP_IE_ROLE_NSE, IGPP_IE_NSEI, IGPP_IE_BVCI, IGPP_IE_CELL_ID};
 static const uint8_t create_bvc_ack_ies[] = { IGPP_IE_NSEI, IGPP_IE_BVCI };
 static const uint8_t delete_bvc_ies[] = { IGPP_IE_NSEI, IGPP_IE_BVCI };
 static const uint8_t delete_bvc_ack_ies[] = { IGPP_IE_NSEI, IGPP_IE_BVCI };
@@ -66,7 +70,7 @@ const struct osmo_tlv_prot_def osmo_pdef_igpp = {
 	},
 	.ie_def = {
 		[IGPP_IE_TRANS_NO] = { 2, "Transaction no." },
-		[IGPP_IE_ROLE] = { 1, "Role" },
+		[IGPP_IE_ROLE_NSE] = { 1, "Role" },
 		[IGPP_IE_NSEI] = { 2, "NSEI" },
 		[IGPP_IE_BVCI] = { 2, "BVCI" },
 		[IGPP_IE_CELL_ID] = { 8, "Cell Identifier" },
@@ -210,7 +214,7 @@ struct msgb *igpp_enc_create_bvc(uint16_t nsei, uint8_t role, uint16_t bvci,
 	bssgp_create_cell_id(bssgp_cid, ra_id, cell_id);
 
 	msgb_tvlv_put(msg, IGPP_IE_NSEI, 2, (uint8_t *) &_nsei);
-	msgb_tvlv_put(msg, IGPP_IE_ROLE, 1, (uint8_t *) &role);
+	msgb_tvlv_put(msg, IGPP_IE_ROLE_NSE, 1, (uint8_t *) &role);
 	msgb_tvlv_put(msg, IGPP_IE_BVCI, 2, (uint8_t *) &_bvci);
 	msgb_tvlv_put(msg, IGPP_IE_CELL_ID, 8, (uint8_t *) &bssgp_cid);
 
@@ -276,4 +280,53 @@ struct msgb *igpp_enc_forward_ack(uint16_t nsei)
 	msgb_tvlv_put(msg, IGPP_IE_NSEI, 2, (uint8_t *) &_nsei);
 
 	return msg;
+}
+
+/* ---------- */
+/* TODO:
+ */
+
+int igpp_init_config(struct gbproxy_config *cfg)
+{
+	struct igpp_config *igpp = &cfg->igpp;
+
+	igpp->cfg = cfg;
+	igpp->default_role = IGPP_ROLE_PRIMARY;
+
+	hash_init(igpp->igpp_nses);
+	LOGP(DIGPP, LOGL_INFO, "IGPP Initialized\n");
+	return 0;
+}
+
+/** Needed functions:
+  *
+  * igpp_nse_get_role_for_nsei
+  * igpp_nse_by_nsei
+  * 
+*/
+
+int igpp_recv(void *ctx, struct msgb *msg)
+{
+	struct igpp_link *link = (struct igpp_link *)ctx;
+	struct igpp_hdr *igpph = msgb_igpph(msg);
+
+	uint8_t pdu_type = igpph->pdu_type;
+	const char *pdut_name = osmo_tlv_prot_msg_name(&osmo_pdef_igpp, pdu_type);
+
+
+	struct tlv_parsed tp = { };
+	int rc = 0;
+
+	if (msg->len < sizeof(struct igpp_hdr))
+		return -EINVAL;
+
+	/* Get the correct FSM for NSE */
+	switch (igpph->pdu_type) {
+	case IGPP_PDUT_RESET:
+	case IGPP_PDUT_PING:
+	case IGPP_PDUT_PONG:
+		LOGP(DIGPP, LOGL_INFO, "Got IGPP msg %s\n", pdut_name);
+	}
+
+	return rc;
 }

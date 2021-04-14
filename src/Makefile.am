@@ -26,6 +26,7 @@ osmo_gbproxy_SOURCES = \
 	gb_proxy_ctrl.c \
 	gb_proxy_peer.c \
 	gb_proxy_igpp.c \
+	gb_proxy_igpp_fsm.c \
 	$(NULL)
 osmo_gbproxy_LDADD = \
 	$(LIBOSMOCORE_LIBS) \

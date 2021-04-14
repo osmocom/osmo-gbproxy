@@ -10,6 +10,7 @@
 enum {
 	DGPRS,
 	DOBJ,
+	DIGPP,
 	Debug_LastEntry,
 };
 
