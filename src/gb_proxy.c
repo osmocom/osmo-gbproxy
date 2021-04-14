@@ -1717,5 +1717,7 @@ int gbproxy_init_config(struct gbproxy_config *cfg)
 	osmo_clock_gettime(CLOCK_REALTIME, &tp);
 	osmo_fsm_log_timeouts(true);
 
+	igpp_init_config(cfg);
+
 	return 0;
 }

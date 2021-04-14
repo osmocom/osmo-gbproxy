@@ -13,6 +13,8 @@
 #include <osmocom/gprs/gprs_ns2.h>
 #include <osmocom/vty/command.h>
 
+#include <osmocom/gbproxy/gb_proxy_igpp.h>
+
 #include <sys/types.h>
 #include <regex.h>
 #include <stdbool.h>
@@ -100,6 +102,10 @@ struct gbproxy_config {
 
 	/* Counter */
 	struct rate_ctr_group *ctrg;
+
+
+	/* IGPP */
+	struct igpp_config igpp;
 };
 
 /* One Cell within the BSS: Links BSS-side BVC to SGSN-side BVCs */

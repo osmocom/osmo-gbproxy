@@ -39,6 +39,7 @@
 #include <osmocom/gsm/gsm48.h>
 
 #include "debug.h"
+#include "osmocom/gbproxy/gb_proxy_igpp.h"
 #include <osmocom/gbproxy/gb_proxy.h>
 
 #include <osmocom/vty/command.h>
@@ -142,6 +143,14 @@ static int config_write_gbproxy(struct vty *vty)
 		if (r->first != r->last)
 			vty_out(vty, " %d", r->last);
 		vty_out(vty, "%s", VTY_NEWLINE);
+	}
+	if (g_cfg->igpp.default_role != IGPP_ROLE_NONE) {
+		const char *igpp_role = "primary";
+		if (g_cfg->igpp.default_role == IGPP_ROLE_SECONDARY)
+			igpp_role = "secondary";
+
+		vty_out(vty, " igpp peer %s %u%s", g_cfg->igpp.peer.host, g_cfg->igpp.peer.port, VTY_NEWLINE);
+		vty_out(vty, " igpp role %s%s", igpp_role, VTY_NEWLINE);
 	}
 	return CMD_SUCCESS;
 }
@@ -469,6 +478,42 @@ DEFUN_ATTR(cfg_gbproxy_nri_null_del,
 	return CMD_SUCCESS;
 }
 
+DEFUN(cfg_igpp_peer,
+      cfg_igpp_peer_cmd,
+      "igpp peer " VTY_IPV46_CMD " <1-65535>",
+      "IGPP related configuration\n"
+      "Configure IGPP peer\n"
+      "IP address of peer\n"
+      "Port of peer\n")
+{
+/*	const char *addr_str = argv[0];
+	uint16_t port = atoi(argv[1]);
+	struct osmo_sockaddr_str sockaddr_str;
+	struct osmo_sockaddr sockaddr;
+*/
+	g_cfg->igpp.peer.host = talloc_strdup(g_cfg, argv[0]);
+	g_cfg->igpp.peer.port = atoi(argv[1]);
+	return CMD_SUCCESS;
+}
+
+DEFUN(cfg_igpp_role,
+      cfg_igpp_role_cmd,
+      "igpp role (primary|secondary|none)",
+      "IGPP related configuration\n"
+      "Configure IGPP role\n"
+      "Primary\n"
+      "Secondary\n")
+{
+	if (!strcmp(argv[0], "primary")) {
+		g_cfg->igpp.default_role = IGPP_ROLE_PRIMARY;
+	} else if (!strcmp(argv[0], "secondary")) {
+		g_cfg->igpp.default_role = IGPP_ROLE_SECONDARY;
+	} else {
+		g_cfg->igpp.default_role = IGPP_ROLE_NONE;
+	}
+	return CMD_SUCCESS;
+}
+
 static void log_set_bvc_filter(struct log_target *target,
 				const uint16_t *bvci)
 {
@@ -756,6 +801,8 @@ int gbproxy_vty_init(void)
 	install_element(GBPROXY_NODE, &cfg_gbproxy_nri_bitlen_cmd);
 	install_element(GBPROXY_NODE, &cfg_gbproxy_nri_null_add_cmd);
 	install_element(GBPROXY_NODE, &cfg_gbproxy_nri_null_del_cmd);
+	install_element(GBPROXY_NODE, &cfg_igpp_peer_cmd);
+	install_element(GBPROXY_NODE, &cfg_igpp_role_cmd);
 
 	install_element(CONFIG_NODE, &cfg_sgsn_nsei_cmd);
 	install_node(&sgsn_node, config_write_sgsn);

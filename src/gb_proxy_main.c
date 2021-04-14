@@ -245,6 +245,12 @@ static struct log_info_cat gprs_categories[] = {
 		.enabled = 1,
 		.color = "\033[38;5;121m"
 	},
+	[DIGPP] = {
+		.name = "DIGPP",
+		.description = "Inter-GbProxy Protocol",
+		.enabled = 1,
+		.color = "\033[38;5;208m"
+	},
 };
 
 static const struct log_info gprs_log_info = {

@@ -1,5 +1,11 @@
 #pragma once
 
+#include <osmocom/core/hashtable.h>
+#include <osmocom/core/fsm.h>
+#include <osmocom/core/msgb.h>
+
+#include <osmocom/netif/stream.h>
+
 #include <stdint.h>
 
 enum igpp_pdu_type {
@@ -45,6 +51,7 @@ enum igpp_iei_type {
 	// FIXME: Do we need this?
 	IGPP_IE_TRANS_NO,
 	IGPP_IE_ROLE,
+	IGPP_IE_ROLE_NSE,
 	IGPP_IE_NSEI,
 	IGPP_IE_BVCI,
 	IGPP_IE_CELL_ID,
@@ -57,8 +64,17 @@ enum igpp_iei_type {
 	// TODO: BSSGP Features and Ext Features
 };
 
-#define IGPP_ROLE_SGSN	0x01
-#define IGPP_ROLE_BSS	0x02
+/* TODO: Per NSE or per Server? */
+enum igpp_role {
+	IGPP_ROLE_NONE = 0x00,
+	IGPP_ROLE_PRIMARY = 0x01,
+	IGPP_ROLE_SECONDARY = 0x02,
+};
+
+enum igpp_role_nse {
+	IGPP_ROLE_NSE_SGSN = 0x01,
+	IGPP_ROLE_NSE_BSS = 0x02,
+};
 
 extern const struct osmo_tlv_prot_def osmo_pdef_igpp;
 
@@ -72,3 +88,39 @@ struct igpp_msgb_cb {
 #define msgb_igpph(__x)	IGPP_MSGB_CB(__x)->igpph
 #define msgb_bssgph(__x)	IGPP_MSGB_CB(__x)->bssgph
 #define msgb_bssgp_len(__x)	((__x)->tail - (uint8_t *)msgb_bssgph(__x))
+
+
+
+/* Config structs */
+
+struct igpp_config {
+	/* Pointer back to the gbproxy config */
+	struct gbproxy_config * cfg;
+
+	/* default role */
+	enum igpp_role default_role;
+
+	/* hash table of all IGPP NSEs */
+	DECLARE_HASHTABLE(igpp_nses, 8);
+
+	/* Remote peer info IP/port */
+	struct {
+		const char *host;
+		uint16_t port;
+	} peer;
+
+	/* SCTP connection to the peer. default_role determines if it's
+	 * client or server */
+	struct {
+		struct osmo_stream_srv_link *srv;
+		struct osmo_stream_srv *sconn;
+		struct osmo_stream_cli *cconn;
+	} link;
+};
+
+struct igpp_nse {
+	uint16_t nsei;
+	struct osmo_fsm_inst *fi;
+};
+
+int igpp_init_config(struct gbproxy_config *cfg);
