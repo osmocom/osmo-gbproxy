@@ -356,6 +356,11 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	if (igpp_init_socket(tall_sgsn_ctx, &gbcfg->igpp) != 0) {
+		LOGP(DGPRS, LOGL_FATAL, "Failed to setup IGPP socket.\n");
+		exit(1);
+	}
+
 	if (daemonize) {
 		rc = osmo_daemonize();
 		if (rc < 0) {

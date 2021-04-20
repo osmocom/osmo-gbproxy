@@ -1,4 +1,5 @@
 #include <osmocom/core/byteswap.h>
+#include <osmocom/core/socket.h>
 #include <osmocom/gbproxy/gb_proxy_igpp_fsm.h>
 #include <osmocom/gbproxy/gb_proxy_igpp.h>
 #include <osmocom/gbproxy/gb_proxy.h>
@@ -6,6 +7,7 @@
 #include <osmocom/gsm/tlv.h>
 
 #include "debug.h"
+#include "osmocom/netif/stream.h"
 
 /* FIXME: Ping with role per-NSE or ping per server but with disconnected mode of operations? */
 static const uint8_t ping_ies[] = { IGPP_IE_ROLE, IGPP_IE_NSEI };
@@ -107,7 +109,7 @@ inline struct msgb *igpp_msgb_enc_simple(enum igpp_pdu_type pdut)
 	return msg;
 }
 
-static inline struct msgb *igpp_enc_nsei_bvci_type(enum igpp_pdu_type pdut, uint16_t nsei, uint16_t bvci)
+static inline struct msgb *igpp_enc_nsei_bvci(enum igpp_pdu_type pdut, uint16_t nsei, uint16_t bvci)
 {
 	uint16_t _nsei = osmo_htons(nsei);
 	uint16_t _bvci = osmo_htons(bvci);
@@ -223,7 +225,7 @@ struct msgb *igpp_enc_create_bvc(uint16_t nsei, uint8_t role, uint16_t bvci,
 
 struct msgb *igpp_enc_create_bvc_ack(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_CREATE_BVC_ACK, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_CREATE_BVC_ACK, nsei, bvci);
 }
 
 /** Encode a DELETE-BVC message
@@ -236,32 +238,32 @@ struct msgb *igpp_enc_create_bvc_ack(uint16_t nsei, uint16_t bvci)
   */
 struct msgb *igpp_enc_delete_bvc(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_DELETE_BVC, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_DELETE_BVC, nsei, bvci);
 }
 
 struct msgb *igpp_enc_delete_bvc_ack(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_DELETE_BVC_ACK, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_DELETE_BVC_ACK, nsei, bvci);
 }
 
 struct msgb *igpp_enc_block_bvc(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_BLOCK_BVC, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_BLOCK_BVC, nsei, bvci);
 }
 
 struct msgb *igpp_enc_block_bvc_ack(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_BLOCK_BVC_ACK, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_BLOCK_BVC_ACK, nsei, bvci);
 }
 
 struct msgb *igpp_enc_unblock_bvc(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_UNBLOCK_BVC, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_UNBLOCK_BVC, nsei, bvci);
 }
 
 struct msgb *igpp_enc_unblock_bvc_ack(uint16_t nsei, uint16_t bvci)
 {
-	return igpp_enc_nsei_bvci_type(IGPP_PDUT_UNBLOCK_BVC_ACK, nsei, bvci);
+	return igpp_enc_nsei_bvci(IGPP_PDUT_UNBLOCK_BVC_ACK, nsei, bvci);
 }
 
 struct msgb *igpp_enc_forward(uint16_t nsei, struct msgb *pdu)
@@ -282,6 +284,8 @@ struct msgb *igpp_enc_forward_ack(uint16_t nsei)
 	return msg;
 }
 
+static int igpp_recv(struct igpp_config *igpp, struct msgb *msg);
+
 /* ---------- */
 /* TODO:
  */
@@ -291,11 +295,188 @@ int igpp_init_config(struct gbproxy_config *cfg)
 	struct igpp_config *igpp = &cfg->igpp;
 
 	igpp->cfg = cfg;
-	igpp->default_role = IGPP_ROLE_PRIMARY;
+	igpp->default_role = IGPP_ROLE_NONE;
+	igpp->peer.host = "127.0.0.1";
+	igpp->peer.port = IGPP_DEFAULT_PORT;
 
 	hash_init(igpp->igpp_nses);
-	LOGP(DIGPP, LOGL_INFO, "IGPP Initialized\n");
 	return 0;
+}
+
+/* stream_srv callbacks */
+
+static int srv_read_cb(struct osmo_stream_srv *conn)
+{
+	int read;
+	struct msgb *msg;
+	struct igpp_config *igpp = osmo_stream_srv_get_data(conn);
+	OSMO_ASSERT(igpp);
+
+	msg = igpp_msgb_alloc();
+	OSMO_ASSERT(msg);
+
+	read = osmo_stream_srv_recv(conn, msg);
+
+	if (read <= 0) {
+		osmo_stream_srv_destroy(conn);
+		msgb_free(msg);
+	} else {
+		LOGP(DIGPP, LOGL_DEBUG, "Read %d bytes\n", read);
+		igpp_recv(igpp, msg);
+	}
+
+	return 0;
+}
+
+static int srv_close_cb(struct osmo_stream_srv *conn)
+{
+	struct igpp_config *igpp = osmo_stream_srv_get_data(conn);
+
+	igpp->srv_conn = NULL;
+
+	LOGP(DIGPP, LOGL_NOTICE, "Connection closed\n");
+
+	return 0;
+}
+
+static int srv_accept_cb(struct osmo_stream_srv_link *srv, int fd)
+{
+	char buf[OSMO_SOCK_NAME_MAXLEN];
+	struct igpp_config *igpp;
+
+	igpp = osmo_stream_srv_link_get_data(srv);
+
+	/* TODO: What if we already have a connection? */
+	if (igpp->srv_conn) {
+		LOGP(DIGPP, LOGL_NOTICE, "Rejecting connection, already established\n");
+		return -1;
+	}
+
+	igpp->srv_conn = osmo_stream_srv_create(srv, srv, fd, srv_read_cb, srv_close_cb, igpp);
+	if (!igpp->srv_conn) {
+		LOGP(DIGPP, LOGL_ERROR, "Error while creating connection\n");
+		return -1;
+	}
+
+	osmo_sock_get_name_buf(buf, OSMO_SOCK_NAME_MAXLEN, fd);
+	LOGP(DIGPP, LOGL_INFO, "Accepted new client: %s\n", buf);
+
+	return 0;
+}
+
+static int igpp_init_server(void *ctx, struct igpp_config *igpp)
+{
+	int rc = 0;
+	struct osmo_stream_srv_link *srv;
+
+	srv = osmo_stream_srv_link_create(ctx);
+	if (!srv) {
+		LOGP(DIGPP, LOGL_FATAL, "Cannot create IGPP server.\n");
+		return 1;
+	}
+
+	osmo_stream_srv_link_set_addr(srv, igpp->peer.host);
+	osmo_stream_srv_link_set_port(srv, igpp->peer.port);
+	osmo_stream_srv_link_set_accept_cb(srv, srv_accept_cb);
+	osmo_stream_srv_link_set_data(srv, igpp);
+
+	if (osmo_stream_srv_link_open(srv) < 0) {
+		LOGP(DIGPP, LOGL_FATAL, "Cannot open IGPP server.\n");
+		return 1;
+	}
+
+	return rc;
+}
+
+/* stream_cli callbacks */
+
+static int cli_read_cb(struct osmo_stream_cli *conn)
+{
+	int read;
+	struct msgb *msg;
+	struct igpp_config *igpp = osmo_stream_cli_get_data(conn);
+	OSMO_ASSERT(igpp);
+
+	msg = igpp_msgb_alloc();
+	OSMO_ASSERT(msg);
+
+	read = osmo_stream_cli_recv(conn, msg);
+
+	if (read <= 0) {
+		LOGP(DIGPP, LOGL_NOTICE, "Cannot receive message.\n");
+		msgb_free(msg);
+	} else {
+		LOGP(DIGPP, LOGL_DEBUG, "Read %d bytes\n", read);
+		igpp_recv(igpp, msg);
+	}
+
+	return 0;
+}
+
+static int cli_connect_cb(struct osmo_stream_cli *conn)
+{
+	LOGP(DIGPP, LOGL_NOTICE, "Client connected.\n");
+
+	return 0;
+}
+
+static int cli_disconnect_cb(struct osmo_stream_cli *conn)
+{
+	LOGP(DIGPP, LOGL_NOTICE, "Client disconnected.\n");
+
+	return 0;
+}
+
+static int igpp_init_client(void *ctx, struct igpp_config *igpp)
+{
+	int rc = 0;
+	struct osmo_stream_cli *conn;
+
+	conn = osmo_stream_cli_create(ctx);
+	if (!conn) {
+		LOGP(DIGPP, LOGL_FATAL, "Cannot create IGPP client.\n");
+		return 1;
+	}
+
+	osmo_stream_cli_set_addr(conn, igpp->peer.host);
+	osmo_stream_cli_set_port(conn, igpp->peer.port);
+	osmo_stream_cli_set_connect_cb(conn, cli_connect_cb);
+	osmo_stream_cli_set_disconnect_cb(conn, cli_disconnect_cb);
+	osmo_stream_cli_set_read_cb(conn, cli_read_cb);
+	osmo_stream_cli_set_data(conn, igpp);
+
+	if (osmo_stream_cli_open(conn) < 0) {
+		LOGP(DIGPP, LOGL_FATAL, "Cannot open IGPP client.\n");
+		return 1;
+	}
+
+	return rc;
+}
+
+int igpp_init_socket(void *ctx, struct igpp_config *igpp)
+{
+	int rc = 0;
+
+	switch (igpp->default_role) {
+	case IGPP_ROLE_PRIMARY:
+		rc = igpp_init_server(ctx, igpp);
+		break;
+	case IGPP_ROLE_SECONDARY:
+		rc = igpp_init_client(ctx, igpp);
+		break;
+	case IGPP_ROLE_NONE:
+		LOGP(DIGPP, LOGL_INFO, "IGPP disabled.\n");
+		return 0;
+	}
+
+	if (rc == 0)
+		igpp->fi = igpp_fsm_alloc(igpp, igpp->default_role);
+	if (!igpp->fi) {
+		LOGP(DIGPP, LOGL_FATAL, "Could not create IGPP FSM.\n");
+		return -1;
+	}
+
+	return rc;
 }
 
 /** Needed functions:
@@ -305,9 +486,9 @@ int igpp_init_config(struct gbproxy_config *cfg)
   * 
 */
 
-int igpp_recv(void *ctx, struct msgb *msg)
+static int igpp_recv(struct igpp_config *igpp, struct msgb *msg)
 {
-	struct igpp_link *link = (struct igpp_link *)ctx;
+
 	struct igpp_hdr *igpph = msgb_igpph(msg);
 
 	uint8_t pdu_type = igpph->pdu_type;
@@ -327,6 +508,8 @@ int igpp_recv(void *ctx, struct msgb *msg)
 	case IGPP_PDUT_PONG:
 		LOGP(DIGPP, LOGL_INFO, "Got IGPP msg %s\n", pdut_name);
 	}
+
+	msgb_free(msg);
 
 	return rc;
 }

@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#define IGPP_DEFAULT_PORT 1234
+
 enum igpp_pdu_type {
 	IGPP_PDUT_PING,
 	IGPP_PDUT_PONG,
@@ -81,13 +83,11 @@ extern const struct osmo_tlv_prot_def osmo_pdef_igpp;
 /*! the data structure stored in msgb->cb for libgb apps */
 struct igpp_msgb_cb {
 	unsigned char *igpph;
-	unsigned char *bssgph;
 } __attribute__((packed, may_alias));
 
 #define IGPP_MSGB_CB(__msgb)	((struct igpp_msgb_cb *)&((__msgb)->cb[0]))
 #define msgb_igpph(__x)	IGPP_MSGB_CB(__x)->igpph
-#define msgb_bssgph(__x)	IGPP_MSGB_CB(__x)->bssgph
-#define msgb_bssgp_len(__x)	((__x)->tail - (uint8_t *)msgb_bssgph(__x))
+#define msgb_igpp_len(__x)	((__x)->tail - (uint8_t *)msgb_igpph(__x))
 
 
 
@@ -99,9 +99,6 @@ struct igpp_config {
 
 	/* default role */
 	enum igpp_role default_role;
-
-	/* hash table of all IGPP NSEs */
-	DECLARE_HASHTABLE(igpp_nses, 8);
 
 	/* Remote peer info IP/port */
 	struct {
@@ -116,11 +113,23 @@ struct igpp_config {
 		struct osmo_stream_srv *sconn;
 		struct osmo_stream_cli *cconn;
 	} link;
+
+	/* Global IGPP FSM */
+	struct osmo_fsm_inst *fi;
+
+	/* hash table of all IGPP NSEs */
+	DECLARE_HASHTABLE(igpp_nses, 8);
+
+	/* IGPP client/server connection (depending on the default_role) */
+	struct osmo_stream_srv *srv_conn;
+	struct osmo_stream_cli *cli_conn;
 };
 
 struct igpp_nse {
+	struct igpp_config *igpp;
 	uint16_t nsei;
 	struct osmo_fsm_inst *fi;
 };
 
 int igpp_init_config(struct gbproxy_config *cfg);
+int igpp_init_socket(void *ctx, struct igpp_config *igpp);
