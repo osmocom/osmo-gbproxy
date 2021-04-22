@@ -289,23 +289,6 @@ int main(int argc, char **argv)
 	osmo_cpu_sched_vty_init(tall_sgsn_ctx);
 	gbproxy_vty_init();
 
-	handle_options(argc, argv);
-
-	/* Backwards compatibility: for years, the default config file name was
-	 * osmo_gbproxy.cfg. All other Osmocom programs use osmo-*.cfg with a
-	 * dash. To be able to use the new config file name without breaking
-	 * previous setups that might rely on the legacy default config file
-	 * name, we need to look for the old config file if no -c option was
-	 * passed AND no file exists with the new default file name. */
-	if (!config_file) {
-		/* No -c option was passed */
-		if (file_exists(CONFIG_FILE_LEGACY)
-		    && !file_exists(CONFIG_FILE_DEFAULT))
-			config_file = CONFIG_FILE_LEGACY;
-		else
-			config_file = CONFIG_FILE_DEFAULT;
-	}
-
 	rate_ctr_init(tall_sgsn_ctx);
 	osmo_stats_init(tall_sgsn_ctx);
 
@@ -322,6 +305,23 @@ int main(int argc, char **argv)
 	}
 	gprs_ns2_vty_init(gbcfg->nsi);
 	logging_vty_add_deprecated_subsys(tall_sgsn_ctx, "bssgp");
+
+	handle_options(argc, argv);
+
+	/* Backwards compatibility: for years, the default config file name was
+	 * osmo_gbproxy.cfg. All other Osmocom programs use osmo-*.cfg with a
+	 * dash. To be able to use the new config file name without breaking
+	 * previous setups that might rely on the legacy default config file
+	 * name, we need to look for the old config file if no -c option was
+	 * passed AND no file exists with the new default file name. */
+	if (!config_file) {
+		/* No -c option was passed */
+		if (file_exists(CONFIG_FILE_LEGACY)
+		    && !file_exists(CONFIG_FILE_DEFAULT))
+			config_file = CONFIG_FILE_LEGACY;
+		else
+			config_file = CONFIG_FILE_DEFAULT;
+	}
 
 	bssgp_set_bssgp_callback(gbprox_bssgp_send_cb, gbcfg);
 
