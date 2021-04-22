@@ -2,10 +2,8 @@ OsmoGbProxy> enable
 OsmoGbProxy# show nri all
 sgsn nsei 101
  nri add 1
- nri add 11
 sgsn nsei 102
  nri add 2
- nri add 12
 OsmoGbProxy# configure terminal
 OsmoGbProxy(config)# list
 ...

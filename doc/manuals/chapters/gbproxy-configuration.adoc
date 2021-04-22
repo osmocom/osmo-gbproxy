@@ -5,29 +5,10 @@ configuration of the NS links.
 Most config options specific to OsmoGbProxy are related to SGSN pooling and
 telling the proxy which NSE(s) it should use to talk to the SGSN(s).
 
-=== Configure the Network Service (NS)
-
-A detailed description of the NS configuration can be found in <<libosmogb>>.
 The following config snippets assume the SGSN(s) (NSEI 101 and 102) are using
 IP-SNS and listen on 10.0.1.1:23000 and 10.0.1.2:23000 respectively.
 
-This would be the NS config for the SGSN(s):
-
-.Example: NS configuration example (SGSN)
-----
-ns
- bind udp local
-  listen 10.0.0.1 23000 <1>
- nse 101 <2>
-  ip-sns 10.0.1.1 23000 <3>
- nse 102
-  ip-sns 10.0.1.2 23000
-----
-<1> Define the local IP/port from which to connect
-<2> Define an NSE with NSEI
-<3> Use IP-SNS to connect to the SGSN
-
-=== Configure an SGSN
+=== Configure SGSN(s)
 
 Configuration of a single (non-pooling) SGSN is rather simple.
 
@@ -35,7 +16,36 @@ Configuration of a single (non-pooling) SGSN is rather simple.
 ----
 sgsn 101 <1>
  name Main SGSN <2>
+sgsn 102
+ns
+ bind udp sgsn-side
+  listen 10.0.0.1 23000 <3>
+ nse 101 <4>
+  ip-sns-bind sgsn-side <5>
+  ip-sns-remote 10.0.1.1 23000 <6>
+ nse 102
+  ip-sns-bind sgsn-side
+  ip-sns-remote 10.0.1.2 23000
 ----
 <1> Each SGSN is identified by its NSEI (same as in the NS configuration)
 <2> An SGSN can optionally have a name. If none is set a default name will be used.
+<3> Define IP/port from which to connect
+<4> Define an NSE with NSEI
+<5> Use this bind to connect from
+<6> Use IP-SNS to connect to the SGSN
 
+=== Configure a socket for BSS
+
+The following configuration shows how to accept arbitrary BSS-NSE
+
+.Example: NS configuration example (NS)
+----
+ns
+ bind udp bss-side <1>
+  listen 10.0.0.100 23000
+  accept-dynamic-ip-sns <2>
+ ip-sns-default bind bss-side <3>
+----
+<1> Define bind with IP/port for the BSS
+<2> Allow BSS with dynamic NSE to connect to this bind
+<3> Use this bind as default for dynamic NSE
