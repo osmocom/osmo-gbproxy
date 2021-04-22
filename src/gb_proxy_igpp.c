@@ -91,11 +91,11 @@ struct msgb *igpp_msgb_alloc()
 
 	OSMO_ASSERT(msg != NULL);
 
-	msgb_igpph(msg) = msg->data;
+	msgb_igpph(msg) = (struct igpp_hdr *)msg->data;
 	return msg;
 }
 
-inline struct msgb *igpp_msgb_enc_simple(enum igpp_pdu_type pdut)
+struct msgb *igpp_msgb_enc_simple(enum igpp_pdu_type pdut)
 {
 	struct msgb *msg = igpp_msgb_alloc();
 	struct igpp_hdr *igpph;
@@ -109,7 +109,7 @@ inline struct msgb *igpp_msgb_enc_simple(enum igpp_pdu_type pdut)
 	return msg;
 }
 
-static inline struct msgb *igpp_enc_nsei_bvci(enum igpp_pdu_type pdut, uint16_t nsei, uint16_t bvci)
+struct msgb *igpp_enc_nsei_bvci(enum igpp_pdu_type pdut, uint16_t nsei, uint16_t bvci)
 {
 	uint16_t _nsei = osmo_htons(nsei);
 	uint16_t _bvci = osmo_htons(bvci);
@@ -415,14 +415,22 @@ static int cli_read_cb(struct osmo_stream_cli *conn)
 
 static int cli_connect_cb(struct osmo_stream_cli *conn)
 {
+	struct igpp_config *igpp;
+
+	igpp = osmo_stream_cli_get_data(conn);
 	LOGP(DIGPP, LOGL_NOTICE, "Client connected.\n");
 
+	igpp->cli_conn = conn;
 	return 0;
 }
 
 static int cli_disconnect_cb(struct osmo_stream_cli *conn)
 {
+	struct igpp_config *igpp;
+
+	igpp = osmo_stream_cli_get_data(conn);
 	LOGP(DIGPP, LOGL_NOTICE, "Client disconnected.\n");
+	igpp->cli_conn = NULL;
 
 	return 0;
 }
@@ -457,6 +465,17 @@ int igpp_init_socket(void *ctx, struct igpp_config *igpp)
 {
 	int rc = 0;
 
+	if (igpp->default_role == IGPP_ROLE_NONE) {
+		LOGP(DIGPP, LOGL_INFO, "IGPP disabled.\n");
+		return 0;
+	}
+
+	igpp->fi = igpp_fsm_alloc(ctx, igpp);
+	if (!igpp->fi) {
+		LOGP(DIGPP, LOGL_FATAL, "Could not create IGPP FSM.\n");
+		return -1;
+	}
+
 	switch (igpp->default_role) {
 	case IGPP_ROLE_PRIMARY:
 		rc = igpp_init_server(ctx, igpp);
@@ -464,16 +483,9 @@ int igpp_init_socket(void *ctx, struct igpp_config *igpp)
 	case IGPP_ROLE_SECONDARY:
 		rc = igpp_init_client(ctx, igpp);
 		break;
-	case IGPP_ROLE_NONE:
-		LOGP(DIGPP, LOGL_INFO, "IGPP disabled.\n");
-		return 0;
-	}
-
-	if (rc == 0)
-		igpp->fi = igpp_fsm_alloc(igpp, igpp->default_role);
-	if (!igpp->fi) {
-		LOGP(DIGPP, LOGL_FATAL, "Could not create IGPP FSM.\n");
-		return -1;
+	default:
+		OSMO_ASSERT(0);
+		break;
 	}
 
 	return rc;
@@ -501,15 +513,39 @@ static int igpp_recv(struct igpp_config *igpp, struct msgb *msg)
 	if (msg->len < sizeof(struct igpp_hdr))
 		return -EINVAL;
 
+	LOGP(DIGPP, LOGL_DEBUG, "Got IGPP msg %s\n", pdut_name);
+
 	/* Get the correct FSM for NSE */
 	switch (igpph->pdu_type) {
 	case IGPP_PDUT_RESET:
+		osmo_fsm_inst_dispatch(igpp->fi, IGPP_FSM_E_RX_RESET, msg);
+		break;
 	case IGPP_PDUT_PING:
+		osmo_fsm_inst_dispatch(igpp->fi, IGPP_FSM_E_RX_PING, msg);
+		break;
 	case IGPP_PDUT_PONG:
-		LOGP(DIGPP, LOGL_INFO, "Got IGPP msg %s\n", pdut_name);
+		osmo_fsm_inst_dispatch(igpp->fi, IGPP_FSM_E_RX_PONG, msg);
+		break;
+	default:
+		LOGP(DIGPP, LOGL_NOTICE, "Unhandled message type: %d\n", igpph->pdu_type);
 	}
 
 	msgb_free(msg);
 
 	return rc;
+}
+
+bool igpp_send(struct igpp_config *igpp, struct msgb *msg)
+{
+	if (igpp->cli_conn) {
+		osmo_stream_cli_send(igpp->cli_conn, msg);
+	} else if (igpp->srv_conn) {
+		osmo_stream_srv_send(igpp->srv_conn, msg);
+
+	} else {
+		msgb_free(msg);
+		return false;
+	}
+
+	return true;
 }

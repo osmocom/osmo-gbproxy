@@ -8,6 +8,7 @@ struct gprs_ra_id;
 
 enum igpp_fsm_state {
 	IGPP_FSM_S_INIT,
+	IGPP_FSM_S_WAIT_RESET_ACK,
 	IGPP_FSM_S_CONNECTED,
 	IGPP_FSM_S_DISCONNECTED,
 };
@@ -30,6 +31,6 @@ struct igpp_fsm_ops {
 					void *priv);
 };
 
-struct osmo_fsm_inst *igpp_fsm_alloc(void *ctx, enum igpp_role role);
+struct osmo_fsm_inst *igpp_fsm_alloc(void *ctx, struct igpp_config *igpp);
 
 void igpp_fsm_set_ops(struct osmo_fsm_inst *fi, const struct igpp_fsm_ops *ops, void *ops_priv);

@@ -64,8 +64,8 @@ struct osmo_tdef igpp_fsm_tdefs[] = {
 /* We cannot use osmo_tdef_fsm_* as it makes hard-coded assumptions that
  * each new/target state will always use the same timer and timeout - or
  * a timeout at all */
-#define T1_MSECS	osmo_tdef_get(igpp_fsm_tdefs, T1, OSMO_TDEF_MS, 1000)
-#define T2_MSECS	osmo_tdef_get(igpp_fsm_tdefs, T2, OSMO_TDEF_MS, 1000)
+#define T1_SECS	osmo_tdef_get(igpp_fsm_tdefs, T1, OSMO_TDEF_MS, 1000)
+#define T2_SECS	osmo_tdef_get(igpp_fsm_tdefs, T2, OSMO_TDEF_MS, 1000)
 
 /* forward declaration */
 static struct osmo_fsm igpp_fsm;
@@ -82,6 +82,8 @@ static const struct value_string igpp_event_names[] = {
 };
 
 struct igpp_fsm_priv {
+	/* Pointer to the IGPP config stuct */
+	struct igpp_config *igpp;
 	/* Are we by default primary or secondary for this NSE */
 	enum igpp_role initial_role;
 
@@ -90,7 +92,6 @@ struct igpp_fsm_priv {
 	/* private data pointer passed to each call-back invocation */
 	void *ops_priv;
 };
-
 
 /* "tail" of each onenter() handler: Calling the state change notification call-back */
 static void _onenter_tail(struct osmo_fsm_inst *fi, uint32_t prev_state)
@@ -111,6 +112,37 @@ static void igpp_fsm_init(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 	OSMO_ASSERT(0);
 }
 
+static void igpp_fsm_init_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	struct igpp_fsm_priv *ifp = fi->priv;
+	struct msgb *msg;
+
+	msg = igpp_enc_ping();
+	igpp_send(ifp->igpp, msg);
+	osmo_fsm_inst_state_chg(fi, IGPP_FSM_S_WAIT_RESET_ACK, T1_SECS, T1);
+
+	_onenter_tail(fi, prev_state);
+}
+
+static void igpp_fsm_wait_reset_ack(struct osmo_fsm_inst *fi, uint32_t event, void *data)
+{
+	/* FIXME: Send reset, wait for sync or timeout */
+	/* we don't really expect anything in this state; all handled via allstate */
+	OSMO_ASSERT(0);
+}
+
+static void igpp_fsm_wait_reset_ack_onenter(struct osmo_fsm_inst *fi, uint32_t prev_state)
+{
+	struct igpp_fsm_priv *ifp = fi->priv;
+	struct msgb *msg;
+
+	msg = igpp_enc_ping();
+	igpp_send(ifp->igpp, msg);
+	osmo_fsm_inst_state_chg(fi, IGPP_FSM_S_WAIT_RESET_ACK, T1_SECS, T1);
+
+	_onenter_tail(fi, prev_state);
+}
+
 static void igpp_fsm_connected(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	/* FIXME: Send reset, wait for sync or timeout */
@@ -128,8 +160,17 @@ static void igpp_fsm_disconnected(struct osmo_fsm_inst *fi, uint32_t event, void
 static void igpp_fsm_allstate(struct osmo_fsm_inst *fi, uint32_t event, void *data)
 {
 	struct igpp_fsm_priv *ifp = fi->priv;
+	struct msgb *msg;
 
 	switch (event) {
+	case IGPP_FSM_E_RX_RESET:
+		break;
+	case IGPP_FSM_E_RX_PING:
+		msg = igpp_enc_pong();
+		igpp_send(ifp->igpp, msg);
+		break;
+	case IGPP_FSM_E_RX_PONG:
+		break;
 	default:
 		break;
 	}
@@ -152,11 +193,21 @@ static const struct osmo_fsm_state igpp_fsm_states[] = {
 	[IGPP_FSM_S_INIT] = {
 		/* initial state */
 		.name = "INIT",
-		.in_event_mask = S(IGPP_FSM_E_RX_RESET_ACK),
-		.out_state_mask = S(IGPP_FSM_S_CONNECTED) |
-				  S(IGPP_FSM_S_DISCONNECTED),
+		.in_event_mask = 0,
+		.out_state_mask = S(IGPP_FSM_S_INIT) |
+				  S(IGPP_FSM_S_WAIT_RESET_ACK),
 		.action = igpp_fsm_init,
-		.onenter = _onenter_tail,
+		.onenter = igpp_fsm_init_onenter,
+	},
+	[IGPP_FSM_S_WAIT_RESET_ACK] = {
+		/* initial state */
+		.name = "WAIT_RESET_ACK",
+		.in_event_mask = S(IGPP_FSM_E_RX_RESET_ACK),
+		.out_state_mask = S(IGPP_FSM_S_WAIT_RESET_ACK) |
+				  S(IGPP_FSM_S_CONNECTED) |
+				  S(IGPP_FSM_S_DISCONNECTED),
+		.action = igpp_fsm_wait_reset_ack,
+		.onenter = igpp_fsm_wait_reset_ack_onenter,
 	},
 	[IGPP_FSM_S_CONNECTED] = {
 		.name = "CONNECTED",
@@ -191,7 +242,7 @@ static struct osmo_fsm igpp_fsm = {
 
 /* FIXME: Do we need NSE role? pass it along then */
 static struct osmo_fsm_inst *
-_igpp_fsm_alloc(void *ctx, enum igpp_role role)
+_igpp_fsm_alloc(void *ctx, struct igpp_config *igpp)
 {
 	struct osmo_fsm_inst *fi;
 	struct igpp_fsm_priv *ifp;
@@ -211,7 +262,7 @@ _igpp_fsm_alloc(void *ctx, enum igpp_role role)
 	}
 	fi->priv = ifp;
 
-	ifp->initial_role = role;
+	ifp->igpp = igpp;
 
 	return fi;
 }
@@ -219,11 +270,11 @@ _igpp_fsm_alloc(void *ctx, enum igpp_role role)
 /*! Allocate an IGPP FSM for an NSE
  *  \param[in] ctx talloc context from which to allocate
  *  \returns newly-allocated FSM Instance; NULL in case of error */
-struct osmo_fsm_inst *igpp_fsm_alloc(void *ctx, enum igpp_role role)
+struct osmo_fsm_inst *igpp_fsm_alloc(void *ctx, struct igpp_config *igpp)
 {
 	struct osmo_fsm_inst *fi;
 
-	fi = _igpp_fsm_alloc(ctx, role);
+	fi = _igpp_fsm_alloc(ctx, igpp);
 	if (!fi)
 		return NULL;
 

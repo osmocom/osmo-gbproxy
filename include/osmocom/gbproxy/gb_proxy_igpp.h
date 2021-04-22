@@ -82,11 +82,11 @@ extern const struct osmo_tlv_prot_def osmo_pdef_igpp;
 
 /*! the data structure stored in msgb->cb for libgb apps */
 struct igpp_msgb_cb {
-	unsigned char *igpph;
+	struct igpp_hdr *igpph;
 } __attribute__((packed, may_alias));
 
 #define IGPP_MSGB_CB(__msgb)	((struct igpp_msgb_cb *)&((__msgb)->cb[0]))
-#define msgb_igpph(__x)	IGPP_MSGB_CB(__x)->igpph
+#define msgb_igpph(__x)		IGPP_MSGB_CB(__x)->igpph
 #define msgb_igpp_len(__x)	((__x)->tail - (uint8_t *)msgb_igpph(__x))
 
 
@@ -133,3 +133,10 @@ struct igpp_nse {
 
 int igpp_init_config(struct gbproxy_config *cfg);
 int igpp_init_socket(void *ctx, struct igpp_config *igpp);
+
+bool igpp_send(struct igpp_config *igpp, struct msgb *msg);
+
+struct msgb *igpp_enc_reset();
+struct msgb *igpp_enc_reset_ack();
+struct msgb *igpp_enc_ping();
+struct msgb *igpp_enc_pong();

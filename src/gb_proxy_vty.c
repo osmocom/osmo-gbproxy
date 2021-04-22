@@ -484,6 +484,7 @@ DEFUN(cfg_igpp_peer,
       "IGPP related configuration\n"
       "Configure IGPP peer\n"
       "IP address of peer\n"
+      "IP address of peer\n"
       "Port of peer\n")
 {
 /*	const char *addr_str = argv[0];
@@ -502,7 +503,8 @@ DEFUN(cfg_igpp_role,
       "IGPP related configuration\n"
       "Configure IGPP role\n"
       "Primary\n"
-      "Secondary\n")
+      "Secondary\n"
+      "Disable IGPP\n")
 {
 	if (!strcmp(argv[0], "primary")) {
 		g_cfg->igpp.default_role = IGPP_ROLE_PRIMARY;
