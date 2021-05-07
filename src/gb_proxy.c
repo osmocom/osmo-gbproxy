@@ -1441,6 +1441,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	case BSSGP_PDUT_RAN_INFO_ERROR:
 	case BSSGP_PDUT_RAN_INFO_APP_ERROR:
 		rc = gbprox_rx_rim_from_sgsn(tp, nse, msg, log_pfx, pdut_name);
+		break;
 	default:
 		LOGPNSE(nse, LOGL_NOTICE, "Rx %s: Not supported\n", pdut_name);
 		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]);
