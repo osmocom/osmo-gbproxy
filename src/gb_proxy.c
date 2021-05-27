@@ -265,22 +265,24 @@ static struct gbproxy_sgsn *gbproxy_select_sgsn(struct gbproxy_config *cfg, cons
 	bool null_nri = false;
 
 	if (!tlli) {
-		sgsn = llist_first_entry(&cfg->sgsns, struct gbproxy_sgsn, list);
+		sgsn = gbproxy_sgsn_by_available(cfg);
 		if (!sgsn) {
+			LOGP(DGPRS, LOGL_ERROR, "Could not find any available SGSN\n");
 			return NULL;
 		}
-		LOGPSGSN(sgsn, LOGL_INFO, "Could not get TLLI, using first SGSN\n");
+		LOGPSGSN(sgsn, LOGL_INFO, "Could not get TLLI, using first available SGSN\n");
 		return sgsn;
 	}
 
 	if (cfg->pool.nri_bitlen == 0) {
 		/* Pooling is disabled */
-		sgsn = llist_first_entry(&cfg->sgsns, struct gbproxy_sgsn, list);
+		sgsn = gbproxy_sgsn_by_available(cfg);
 		if (!sgsn) {
+			LOGP(DGPRS, LOGL_ERROR, "Could not find any available SGSN\n");
 			return NULL;
 		}
 
-		LOGPSGSN(sgsn, LOGL_INFO, "Pooling disabled, using first configured SGSN\n");
+		LOGPSGSN(sgsn, LOGL_INFO, "Pooling disabled, using first available SGSN\n");
 	} else {
 		/* Pooling is enabled, try to use the NRI for routing to an SGSN
 		 * See 3GPP TS 23.236 Ch. 5.3.2 */
@@ -1527,9 +1529,6 @@ int gbprox_rcvmsg(void *ctx, struct msgb *msg)
 
 void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_prim *nsp)
 {
-	/* TODO: bss nsei available/unavailable  bssgp_tx_simple_bvci(BSSGP_PDUT_BVC_BLOCK, nsvc->nsei, bvc->bvci, 0);
-	 */
-
 	int i;
 	struct gbproxy_bvc *bvc;
 	struct gbproxy_nse *nse;
@@ -1543,6 +1542,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 		LOGP(DGPRS, LOGL_NOTICE, "NS-NSE %d became available\n", nsp->nsei);
 		nse = gbproxy_nse_by_nsei(cfg, nsp->nsei, NSE_F_SGSN);
 		if (nse) {
+			nse->alive = true;
 			// Update the NSE max SDU len
 			nse->max_sdu_len = nsp->u.status.mtu;
 
@@ -1560,6 +1560,8 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 			LOGP(DGPRS, LOGL_ERROR, "Unknown NSE(%05d) became unavailable\n", nsp->nsei);
 			break;
 		}
+
+		nse->alive = false;
 		if (nse->sgsn_facing) {
 			struct hlist_node *ntmp;
 			/* SGSN */

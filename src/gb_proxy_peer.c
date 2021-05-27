@@ -625,7 +625,7 @@ void gbproxy_sgsn_free(struct gbproxy_sgsn *sgsn)
 	if (!sgsn)
 		return;
 
-	OSMO_ASSERT(sgsn->nse)
+	OSMO_ASSERT(sgsn->nse);
 
 	_nse_free(sgsn->nse);
 	_sgsn_free(sgsn);
@@ -696,6 +696,9 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_nri(struct gbproxy_config *cfg, uint16_t nr
 	OSMO_ASSERT(cfg);
 
 	llist_for_each_entry(sgsn, &cfg->sgsns, list) {
+		if (!sgsn->nse->alive)
+			continue;
+
 		if (osmo_nri_v_matches_ranges(nri, sgsn->pool.nri_ranges)) {
 			/* Also check if the NRI we're looking for is a NULL NRI */
 			if (null_nri) {
@@ -711,7 +714,7 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_nri(struct gbproxy_config *cfg, uint16_t nr
 	return NULL;
 }
 
-/*! Select a pseudo-random SGSN for a given TLLI, ignoring any SGSN that is not accepting connections
+/*! Select a pseudo-random SGSN for a given TLLI, ignoring any SGSN that is not accepting connections or down
  *  \param[in] cfg The gbproxy configuration
  *  \param[in] sgsn_avoid If not NULL then avoid this SGSN when selecting a new one. Use for load redistribution
  *  \param[in] tlli The tlli to choose an SGSN for. The same tlli will map to the same SGSN as long as no SGSN is
@@ -743,7 +746,7 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_tlli(struct gbproxy_config *cfg, struct gbp
 
 	/* Get the first enabled SGSN after index */
 	llist_for_each_entry(sgsn, &cfg->sgsns, list) {
-		if (i >= index && sgsn->pool.allow_attach) {
+		if (i >= index && sgsn->pool.allow_attach && sgsn->nse->alive) {
 			return sgsn;
 		}
 		i++;
@@ -753,11 +756,27 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_tlli(struct gbproxy_config *cfg, struct gbp
 	llist_for_each_entry(sgsn, &cfg->sgsns, list) {
 		if (i >= index) {
 			break;
-		} else if (sgsn->pool.allow_attach) {
+		} else if (sgsn->pool.allow_attach && sgsn->nse->alive) {
 			return sgsn;
 		}
 		i++;
 	}
+
+	return NULL;
+}
+
+/*! Return the first available gbproxy_sgsn
+ *  \param[in] cfg proxy in which we operate
+ *  \return The SGSN, NULL if no matching SGSN could be found
+ */
+struct gbproxy_sgsn *gbproxy_sgsn_by_available(struct gbproxy_config *cfg)
+{
+	struct gbproxy_sgsn *sgsn;
+	OSMO_ASSERT(cfg);
+
+	llist_for_each_entry(sgsn, &cfg->sgsns, list)
+		if (sgsn->nse->alive &&sgsn->pool.allow_attach)
+			return sgsn;
 
 	return NULL;
 }

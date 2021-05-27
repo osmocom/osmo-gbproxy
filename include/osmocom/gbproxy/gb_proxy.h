@@ -168,6 +168,7 @@ struct gbproxy_nse {
 
 	/* Are we facing towards a SGSN (true) or BSS (false) */
 	bool sgsn_facing;
+	bool alive;
 
 	/* List of all BVCs in this NSE */
 	DECLARE_HASHTABLE(bvcs, 10);
@@ -306,3 +307,4 @@ struct gbproxy_sgsn *gbproxy_sgsn_by_nsei_or_new(struct gbproxy_config *cfg, uin
 struct gbproxy_sgsn *gbproxy_sgsn_by_nri(struct gbproxy_config *cfg, uint16_t nri, bool *null_nri);
 struct gbproxy_sgsn *gbproxy_sgsn_by_tlli(struct gbproxy_config *cfg, struct gbproxy_sgsn *sgsn_avoid,
 					  uint32_t tlli);
+struct gbproxy_sgsn *gbproxy_sgsn_by_available(struct gbproxy_config *cfg);
