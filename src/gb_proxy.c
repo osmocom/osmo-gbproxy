@@ -145,7 +145,7 @@ static int gbprox_relay2sgsn(struct gbproxy_config *cfg, struct msgb *old_msg,
 		       PRIM_OP_REQUEST, msg);
 	rc = gprs_ns2_recv_prim(nsi, &nsp.oph);
 	if (rc < 0)
-		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_TX_ERR_SGSN]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_TX_ERR_SGSN));
 	return rc;
 }
 #endif
@@ -221,7 +221,7 @@ static int gbprox_relay2nse(struct msgb *old_msg, struct gbproxy_nse *nse,
 	rc = bssgp2_nsi_tx_ptp(nsi, nse->nsei, ns_bvci, msg, tlli);
 	/* FIXME: We need a counter group for gbproxy_nse */
 	//if (rc < 0)
-	//	rate_ctr_inc(&bvc->ctrg->ctr[GBPROX_PEER_CTR_TX_ERR]);
+	//	rate_ctr_inc(rate_ctr_group_get_ctr(bvc->ctrg, GBPROX_PEER_CTR_TX_ERR));
 
 	return rc;
 }
@@ -236,7 +236,7 @@ static int gbprox_relay2peer(struct msgb *old_msg, struct gbproxy_bvc *bvc,
 
 	rc = gbprox_relay2nse(old_msg, nse, ns_bvci);
 	if (rc < 0)
-		rate_ctr_inc(&bvc->ctrg->ctr[GBPROX_PEER_CTR_TX_ERR]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(bvc->ctrg, GBPROX_PEER_CTR_TX_ERR));
 
 	return rc;
 }
@@ -434,7 +434,7 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 					 msgb_bssgp_len(msg) - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
 	}
 	if (rc < 0) {
-		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_BSS));
 		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
@@ -540,13 +540,13 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	if (!sgsn_bvc) {
 		LOGP(DGPRS, LOGL_NOTICE, "%s %s - Didn't find BVC for for PTP message, discarding\n",
 		     log_pfx, pdut_name);
-		rate_ctr_inc(&nse->cfg->ctrg-> ctr[GBPROX_GLOB_CTR_INV_BVCI]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_INV_BVCI));
 		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
 	}
 
 	if (!bssgp_bvc_fsm_is_unblocked(sgsn_bvc->fi)) {
 		LOGPBVC(sgsn_bvc, LOGL_NOTICE, "Rx %s: Dropping on blocked BVC\n", pdut_name);
-		rate_ctr_inc(&sgsn_bvc->ctrg->ctr[GBPROX_PEER_CTR_DROPPED]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(sgsn_bvc->ctrg, GBPROX_PEER_CTR_DROPPED));
 		return tx_status(nse, ns_bvci, BSSGP_CAUSE_BVCI_BLOCKED, &ns_bvci, msg);
 	}
 
@@ -566,7 +566,7 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 					 msgb_bssgp_len(msg) - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
 	}
 	if (rc < 0) {
-		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_BSS));
 		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
@@ -1024,7 +1024,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, ARRAY_SIZE(tp), pdu_type, bgph->data, data_len, 0, 0,
 				 DGPRS, log_pfx);
 	if (rc < 0) {
-		rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_BSS]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_BSS));
 		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
@@ -1122,7 +1122,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	return rc;
 err_no_bvc:
 	LOGPNSE(nse, LOGL_ERROR, "Rx %s: cannot find BVC for BVCI=%05u\n", pdut_name, ptp_bvci);
-	rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_INV_NSEI]);
+	rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_INV_NSEI));
 	return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 }
 
@@ -1144,7 +1144,7 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 		if (!sgsn_bvc) {
 			LOGPNSE(sgsn_nse, LOGL_NOTICE, "Rx %s: unable to route: BVCI=%05u unknown\n",
 				pdut_name, bvci);
-			rate_ctr_inc(&cfg->ctrg->ctr[errctr]);
+			rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, errctr));
 			return -EINVAL;
 		}
 		LOGPBVC(sgsn_bvc, LOGL_INFO, "Rx %s: routing by BVCI\n", pdut_name);
@@ -1196,12 +1196,12 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 		}
 	} else {
 		LOGPNSE(sgsn_nse, LOGL_ERROR, "BSSGP PAGING: unable to route, missing IE\n");
-		rate_ctr_inc(&cfg->ctrg->ctr[errctr]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, errctr));
 	}
 
 	if (n_nses == 0) {
 		LOGPNSE(sgsn_nse, LOGL_ERROR, "BSSGP PAGING: unable to route, no destination found\n");
-		rate_ctr_inc(&cfg->ctrg->ctr[errctr]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, errctr));
 		return -EINVAL;
 	}
 	return 0;
@@ -1224,7 +1224,7 @@ static int rx_bvc_reset_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, str
 		from_bvc = gbproxy_bvc_by_bvci(nse, ptp_bvci);
 		if (!from_bvc) {
 			LOGPNSE(nse, LOGL_ERROR, "Rx BVC-RESET BVCI=%05u: Cannot find BVC\n", ptp_bvci);
-			rate_ctr_inc(&nse->cfg->ctrg->ctr[GBPROX_GLOB_CTR_INV_BVCI]);
+			rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_INV_BVCI));
 			return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ptp_bvci, msg);
 		}
 		osmo_fsm_inst_dispatch(from_bvc->fi, BSSGP_BVCFSM_E_RX_RESET, msg);
@@ -1332,7 +1332,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 				 DGPRS, log_pfx);
 	if (rc < 0) {
 		rc = tx_status_from_tlvp(nse, rc, msg);
-		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_SGSN));
 		return rc;
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
@@ -1446,7 +1446,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		break;
 	default:
 		LOGPNSE(nse, LOGL_NOTICE, "Rx %s: Not supported\n", pdut_name);
-		rate_ctr_inc(&cfg->ctrg->ctr[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]);
+		rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_SGSN));
 		rc = tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
 		break;
 	}
@@ -1455,7 +1455,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 
 err_no_bvc:
 	LOGPNSE(nse, LOGL_ERROR, "Rx %s: Cannot find BVC\n", pdut_name);
-	rate_ctr_inc(&cfg->ctrg-> ctr[GBPROX_GLOB_CTR_INV_RAI]);
+	rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_INV_RAI));
 	return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 }
 
@@ -1571,8 +1571,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 					continue;
 				gbproxy_bvc_free(bvc);
 			}
-			rate_ctr_inc(&cfg->ctrg->
-				     ctr[GBPROX_GLOB_CTR_RESTART_RESET_SGSN]);
+			rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_RESTART_RESET_SGSN));
 		} else {
 			/* BSS became unavailable
 			 * Block matching PtP-BVCs on SGSN-side */
