@@ -544,21 +544,6 @@ DEFUN(show_gbproxy_cell, show_gbproxy_cell_cmd, "show gbproxy cell [stats]",
 	return CMD_SUCCESS;
 }
 
-DEFUN(show_gbproxy_links, show_gbproxy_links_cmd, "show gbproxy links",
-       SHOW_STR GBPROXY_STR "Show logical links\n")
-{
-	struct gbproxy_nse *nse;
-	int i, j;
-
-	hash_for_each(g_cfg->bss_nses, i, nse, list) {
-		struct gbproxy_bvc *bvc;
-		hash_for_each(nse->bvcs, j, bvc, list) {
-			gbprox_vty_print_bvc(vty, bvc);
-		}
-	}
-	return CMD_SUCCESS;
-}
-
 DEFUN(show_gbproxy_tlli_cache, show_gbproxy_tlli_cache_cmd,
       "show gbproxy tlli-cache",
       SHOW_STR GBPROXY_STR "Show TLLI cache entries\n")
@@ -738,7 +723,6 @@ int gbproxy_vty_init(void)
 {
 	install_element_ve(&show_gbproxy_bvc_cmd);
 	install_element_ve(&show_gbproxy_cell_cmd);
-	install_element_ve(&show_gbproxy_links_cmd);
 	install_element_ve(&show_gbproxy_tlli_cache_cmd);
 	install_element_ve(&show_gbproxy_imsi_cache_cmd);
 	install_element_ve(&show_nri_all_cmd);
