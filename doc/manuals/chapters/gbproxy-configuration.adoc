@@ -49,3 +49,47 @@ ns
 <1> Define bind with IP/port for the BSS
 <2> Allow BSS with dynamic NSE to connect to this bind
 <3> Use this bind as default for dynamic NSE
+
+=== Checking OsmoGbProxy state
+
+The VTY interface (see <<vty>>) offers you commands to inspect the state of
+OsmoGbProxy.
+FIXME mention/link to NS VTY chapter
+
+
+.Example: Check SGSN-side BVCs
+----
+OsmoGbProxy# show gbproxy bvc sgsn <1>
+NSEI     1, SIG-BVCI     0 [UNBLOCKED] <2>
+NSEI     1, PTP-BVCI  1234, RAI 001-01-1234-0 [UNBLOCKED] <3>
+NSEI     1, PTP-BVCI  1235, RAI 001-01-1235-0 [BLOCKED] <4>
+----
+<1> Show the BVCs towards the SGSN-side
+<2> A signalling BVC is required before PTP-BVCs can be established
+<3> For PTP-BVCs show the BVCI and RAI that was sent during the RESET procedure
+<4> A BVC on the SGSN-side can be blocked either because the BSS blocked the PTP-BVC or if the
+    BSS BVC vanished (due to BVC-RESET or NSE failure). Since there is no way to delete a PTP-BVC
+    it will stay until the SIG-BVC on that NSE is reset.
+
+.Example: Check BSS-side BVCs
+----
+OsmoGbProxy# show gbproxy bvc bss <1>
+NSEI  1001, SIG-BVCI     0 [UNBLOCKED]
+NSEI  1001, PTP-BVCI  1234, RAI 001-01-1234-0 [UNBLOCKED] <2>
+NSEI  1002, SIG-BVCI     0 [UNBLOCKED]
+NSEI  1002, PTP-BVCI  1235, RAI 001-01-1235-0 [BLOCKED]
+----
+<1> Show the BVCs towards the BSS-side
+<2> The information displayed is the same as for the SGSN-side
+
+.Example: Show cell information
+----
+OsmoGbProxy# show gbproxy cell
+BVCI  1234 RAI 001-01-1234-0 CID  1234: BSS NSEI  1001, SGSN NSEI     1 <1>
+BVCI  1235 RAI 001-01-1235-0 CID  1235: BSS NSEI  1002, SGSN NSEI     1
+BVCI  1236 RAI 001-01-1236-0 CID  1236: BSS NSEI  1003, SGSN NSEI     1     2 <2>
+BVCI  1237 RAI 001-01-1237-0 CID  1237: BSS NSEI  <none>, SGSN NSEI <none> <3>
+----
+<1> Show cell information (BVCI, RAI)
+<2> When multiple SGSNs are connected (SGSN pooling) more than one NSEI is shown
+<3> If the BSS or SGSN side of a cell is currently disconnected none is shown instead of the NSEI
