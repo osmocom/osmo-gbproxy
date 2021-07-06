@@ -1114,6 +1114,26 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		rc = gbprox_relay2nse(msg, nse, 0);
 		break;
 	}
+	case BSSGP_PDUT_MS_REGISTR_ENQ:
+	{
+		struct gbproxy_sgsn *sgsn;
+		struct osmo_mobile_identity mi;
+		const uint8_t *mi_data = TLVP_VAL(&tp[0], BSSGP_IE_IMSI);
+		uint8_t mi_len = TLVP_LEN(&tp[0], BSSGP_IE_IMSI);
+		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
+
+		sgsn = gbproxy_select_sgsn(nse->cfg, NULL);
+		if (!sgsn) {
+			LOGP(DGPRS, LOGL_ERROR, "Could not find any SGSN, dropping message!\n");
+			rc = -EINVAL;
+			break;
+		}
+
+		gbproxy_imsi_cache_update(nse, mi.imsi, CACHE_USAGE_MS_REG_ENQ);
+
+		rc = gbprox_relay2nse(msg, sgsn->nse, 0);
+		break;
+	}
 	default:
 		LOGPNSE(nse, LOGL_ERROR, "Rx %s: Implementation missing\n", pdut_name);
 		break;
@@ -1444,6 +1464,25 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	case BSSGP_PDUT_RAN_INFO_APP_ERROR:
 		rc = gbprox_rx_rim_from_sgsn(tp, nse, msg, log_pfx, pdut_name);
 		break;
+	case BSSGP_PDUT_MS_REGISTR_ENQ_RESP:
+	{
+		struct gbproxy_nse *nse_peer;
+		struct osmo_mobile_identity mi;
+		const uint8_t *mi_data = TLVP_VAL(&tp[0], BSSGP_IE_IMSI);
+		uint8_t mi_len = TLVP_LEN(&tp[0], BSSGP_IE_IMSI);
+		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
+		nse_peer = gbproxy_nse_by_imsi(cfg, mi.imsi, CACHE_USAGE_MS_REG_ENQ);
+		if (!nse_peer) {
+			LOGPNSE(nse, LOGL_ERROR, "Rx %s: Cannot find NSE\n", pdut_name);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
+		} else if (nse_peer->sgsn_facing) {
+			LOGPNSE(nse, LOGL_ERROR, "Forwarding %s failed: IMSI cache contains SGSN NSE", pdut_name);
+			return tx_status(nse, ns_bvci, BSSGP_CAUSE_PROTO_ERR_UNSPEC, NULL, msg);
+		}
+		gbproxy_imsi_cache_remove(cfg, mi.imsi, CACHE_USAGE_MS_REG_ENQ);
+		gbprox_relay2nse(msg, nse_peer, ns_bvci);
+		break;
+	}
 	default:
 		LOGPNSE(nse, LOGL_NOTICE, "Rx %s: Not supported\n", pdut_name);
 		rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_SGSN));

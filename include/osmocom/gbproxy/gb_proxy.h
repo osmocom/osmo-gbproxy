@@ -194,6 +194,7 @@ struct gbproxy_sgsn {
 
 enum cache_usage_type {
 	CACHE_USAGE_PAGING,
+	CACHE_USAGE_MS_REG_ENQ,
 };
 
 /* TLLI cache */
