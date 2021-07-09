@@ -484,7 +484,7 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		const uint8_t *mi_data = TLVP_VAL(&tp, BSSGP_IE_IMSI);
 		uint8_t mi_len = TLVP_LEN(&tp, BSSGP_IE_IMSI);
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
-		nse = gbproxy_nse_by_imsi(nse->cfg, mi.imsi);
+		nse = gbproxy_nse_by_imsi(nse->cfg, mi.imsi, CACHE_USAGE_PAGING);
 		if (nse) {
 			OSMO_ASSERT(nse->sgsn_facing);
 			rc = gbprox_relay2nse(msg, nse, ns_bvci);
@@ -586,7 +586,7 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		const uint8_t *mi_data = TLVP_VAL(&tp, BSSGP_IE_IMSI);
 		uint8_t mi_len = TLVP_LEN(&tp, BSSGP_IE_IMSI);
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
-		gbproxy_imsi_cache_update(nse, mi.imsi);
+		gbproxy_imsi_cache_update(nse, mi.imsi, CACHE_USAGE_PAGING);
 		break;
 	}
 	default:
@@ -1106,7 +1106,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		const uint8_t *mi_data = TLVP_VAL(&tp[0], BSSGP_IE_IMSI);
 		uint8_t mi_len = TLVP_LEN(&tp[0], BSSGP_IE_IMSI);
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
-		nse = gbproxy_nse_by_imsi(nse->cfg, mi.imsi);
+		nse = gbproxy_nse_by_imsi(nse->cfg, mi.imsi, CACHE_USAGE_PAGING);
 		if (!nse) {
 			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 		}
@@ -1386,7 +1386,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		const uint8_t *mi_data = TLVP_VAL(&tp[0], BSSGP_IE_IMSI);
 		uint8_t mi_len = TLVP_LEN(&tp[0], BSSGP_IE_IMSI);
 		osmo_mobile_identity_decode(&mi, mi_data, mi_len, false);
-		gbproxy_imsi_cache_update(nse, mi.imsi);
+		gbproxy_imsi_cache_update(nse, mi.imsi, CACHE_USAGE_PAGING);
 		/* fall through */
 	}
 	case BSSGP_PDUT_PAGING_CS:

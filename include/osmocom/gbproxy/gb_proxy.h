@@ -192,6 +192,10 @@ struct gbproxy_sgsn {
 	} pool;
 };
 
+enum cache_usage_type {
+	CACHE_USAGE_PAGING,
+};
+
 /* TLLI cache */
 struct gbproxy_tlli_cache_entry {
 	/* linked to gbproxy_config.tlli_cache.entries */
@@ -199,6 +203,8 @@ struct gbproxy_tlli_cache_entry {
 
 	/* TLLI of the entry */
 	uint32_t tlli;
+	enum cache_usage_type usage;
+
 	/* When was this entry last seen */
 	time_t tstamp;
 	/* The Cell this TLLI was last seen */
@@ -212,6 +218,8 @@ struct gbproxy_imsi_cache_entry {
 
 	/* IMSI of the entry */
 	char imsi[OSMO_IMSI_BUF_SIZE];
+	enum cache_usage_type usage;
+
 	/* When was this entry last seen */
 	time_t tstamp;
 	/* The SGSN where the request came from */
@@ -286,7 +294,7 @@ void gbproxy_nse_free(struct gbproxy_nse *nse);
 struct gbproxy_nse *gbproxy_nse_by_nsei(struct gbproxy_config *cfg, uint16_t nsei, uint32_t flags);
 struct gbproxy_nse *gbproxy_nse_by_nsei_or_new(struct gbproxy_config *cfg, uint16_t nsei, bool sgsn_facing);
 struct gbproxy_nse *gbproxy_nse_by_tlli(struct gbproxy_config *cfg, uint32_t tlli);
-struct gbproxy_nse *gbproxy_nse_by_imsi(struct gbproxy_config *cfg, const char *imsi);
+struct gbproxy_nse *gbproxy_nse_by_imsi(struct gbproxy_config *cfg, const char *imsi, enum cache_usage_type usage);
 
 /* TLLI cache */
 void gbproxy_tlli_cache_update(struct gbproxy_nse *nse, uint32_t tlli);
@@ -294,8 +302,8 @@ void gbproxy_tlli_cache_remove(struct gbproxy_config *cfg, uint32_t tlli);
 int gbproxy_tlli_cache_cleanup(struct gbproxy_config *cfg);
 
 /* IMSI cache */
-void gbproxy_imsi_cache_update(struct gbproxy_nse *nse, const char *imsi);
-void gbproxy_imsi_cache_remove(struct gbproxy_config *cfg, const char *imsi);
+void gbproxy_imsi_cache_update(struct gbproxy_nse *nse, const char *imsi, enum cache_usage_type usage);
+void gbproxy_imsi_cache_remove(struct gbproxy_config *cfg, const char *imsi, enum cache_usage_type usage);
 int gbproxy_imsi_cache_cleanup(struct gbproxy_config *cfg);
 
 /* SGSN handling */

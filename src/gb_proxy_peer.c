@@ -347,23 +347,23 @@ static inline uint16_t _checksum_imsi(const char *imsi)
 	return osmo_crc16(0, (const uint8_t *)imsi, len);
 }
 
-static inline struct gbproxy_imsi_cache_entry *_get_imsi_entry(struct gbproxy_config *cfg, const char *imsi)
+static inline struct gbproxy_imsi_cache_entry *_get_imsi_entry(struct gbproxy_config *cfg, const char *imsi, enum cache_usage_type usage)
 {
 	struct gbproxy_imsi_cache_entry *cache_entry;
 	uint16_t imsi_hash = _checksum_imsi(imsi);
 
 	hash_for_each_possible(cfg->imsi_cache.entries, cache_entry, list, imsi_hash) {
-		if (!strncmp(cache_entry->imsi, imsi, sizeof(cache_entry->imsi)))
+		if (!strncmp(cache_entry->imsi, imsi, sizeof(cache_entry->imsi)) && cache_entry->usage == usage)
 			return cache_entry;
 	}
 	return NULL;
 }
 
-void gbproxy_imsi_cache_update(struct gbproxy_nse *nse, const char *imsi)
+void gbproxy_imsi_cache_update(struct gbproxy_nse *nse, const char *imsi, enum cache_usage_type usage)
 {
 	struct gbproxy_config *cfg = nse->cfg;
 	struct timespec now;
-	struct gbproxy_imsi_cache_entry *cache_entry = _get_imsi_entry(cfg, imsi);
+	struct gbproxy_imsi_cache_entry *cache_entry = _get_imsi_entry(cfg, imsi, usage);
 	uint16_t imsi_hash = _checksum_imsi(imsi);
 
 	osmo_clock_gettime(CLOCK_MONOTONIC, &now);
@@ -378,6 +378,7 @@ void gbproxy_imsi_cache_update(struct gbproxy_nse *nse, const char *imsi)
 	cache_entry = talloc_zero(cfg, struct gbproxy_imsi_cache_entry);
 	OSMO_STRLCPY_ARRAY(cache_entry->imsi, imsi);
 	cache_entry->nse = nse;
+	cache_entry->usage = usage;
 	cache_entry->tstamp = now.tv_sec;
 	hash_add(cfg->imsi_cache.entries, &cache_entry->list, imsi_hash);
 }
@@ -396,14 +397,14 @@ static void _imsi_cache_remove_nse(struct gbproxy_nse *nse) {
 	}
 }
 
-void gbproxy_imsi_cache_remove(struct gbproxy_config *cfg, const char *imsi)
+void gbproxy_imsi_cache_remove(struct gbproxy_config *cfg, const char *imsi, enum cache_usage_type usage)
 {
 	struct gbproxy_imsi_cache_entry *imsi_cache;
 	struct hlist_node *tmp;
 	uint16_t imsi_hash = _checksum_imsi(imsi);
 
 	hash_for_each_possible_safe(cfg->imsi_cache.entries, imsi_cache, tmp, list, imsi_hash) {
-		if (!(strncmp(imsi_cache->imsi, imsi, sizeof(imsi_cache->imsi)))) {
+		if (!(strncmp(imsi_cache->imsi, imsi, sizeof(imsi_cache->imsi))) && imsi_cache->usage == usage) {
 			hash_del(&imsi_cache->list);
 			talloc_free(imsi_cache);
 			return;
@@ -546,13 +547,13 @@ struct gbproxy_nse *gbproxy_nse_by_tlli(struct gbproxy_config *cfg, uint32_t tll
 	return NULL;
 }
 
-struct gbproxy_nse *gbproxy_nse_by_imsi(struct gbproxy_config *cfg, const char *imsi)
+struct gbproxy_nse *gbproxy_nse_by_imsi(struct gbproxy_config *cfg, const char *imsi, enum cache_usage_type usage)
 {
 	struct gbproxy_imsi_cache_entry *imsi_cache;
 	uint16_t imsi_hash = _checksum_imsi(imsi);
 
 	hash_for_each_possible(cfg->imsi_cache.entries, imsi_cache, list, imsi_hash) {
-		if (!strncmp(imsi_cache->imsi, imsi, sizeof(imsi_cache->imsi)))
+		if (!strncmp(imsi_cache->imsi, imsi, sizeof(imsi_cache->imsi)) && imsi_cache->usage == usage)
 			return imsi_cache->nse;
 	}
 	return NULL;
