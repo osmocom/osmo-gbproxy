@@ -70,6 +70,7 @@ struct gbproxy_bvc *gbproxy_bvc_by_bvci(struct gbproxy_nse *nse, uint16_t bvci)
 
 struct gbproxy_bvc *gbproxy_bvc_alloc(struct gbproxy_nse *nse, uint16_t bvci)
 {
+	char idbuf[64];
 	struct gbproxy_bvc *bvc;
 	OSMO_ASSERT(nse);
 	struct gbproxy_config *cfg = nse->cfg;
@@ -79,12 +80,16 @@ struct gbproxy_bvc *gbproxy_bvc_alloc(struct gbproxy_nse *nse, uint16_t bvci)
 	if (!bvc)
 		return NULL;
 
+	snprintf(idbuf, sizeof(idbuf), "BVC%05u-NSE%05u", bvci,
+		 nse->nsei);
+	osmo_identifier_sanitize_buf(idbuf, NULL, '_');
 	bvc->bvci = bvci;
 	bvc->ctrg = rate_ctr_group_alloc(bvc, &bvc_ctrg_desc, (nse->nsei << 16) | bvci);
 	if (!bvc->ctrg) {
 		talloc_free(bvc);
 		return NULL;
 	}
+	rate_ctr_group_set_name(bvc->ctrg, idbuf);
 	bvc->nse = nse;
 
 	hash_add(nse->bvcs, &bvc->list, bvc->bvci);
