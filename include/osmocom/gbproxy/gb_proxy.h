@@ -288,6 +288,7 @@ struct gbproxy_cell *gbproxy_cell_by_bvci(struct gbproxy_config *cfg, uint16_t b
 struct gbproxy_cell *gbproxy_cell_by_cellid(struct gbproxy_config *cfg, const struct gprs_ra_id *raid, uint16_t cid);
 void gbproxy_cell_free(struct gbproxy_cell *cell);
 bool gbproxy_cell_add_sgsn_bvc(struct gbproxy_cell *cell, struct gbproxy_bvc *bvc);
+void gbproxy_cell_cleanup_bvc(struct gbproxy_cell *cell, struct gbproxy_bvc *bvc);
 
 /* NSE handling */
 struct gbproxy_nse *gbproxy_nse_alloc(struct gbproxy_config *cfg, uint16_t nsei, bool sgsn_facing);

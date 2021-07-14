@@ -103,8 +103,6 @@ struct gbproxy_bvc *gbproxy_bvc_alloc(struct gbproxy_nse *nse, uint16_t bvci)
 
 void gbproxy_bvc_free(struct gbproxy_bvc *bvc)
 {
-	struct gbproxy_cell *cell;
-
 	if (!bvc)
 		return;
 
@@ -117,21 +115,10 @@ void gbproxy_bvc_free(struct gbproxy_bvc *bvc)
 
 	osmo_fsm_inst_free(bvc->fi);
 
-	cell = bvc->cell;
-	if (cell) {
-		int i;
-
-		if (cell->bss_bvc == bvc)
-			cell->bss_bvc = NULL;
-
-		/* we could also be a SGSN-side BVC */
-		for (i = 0; i < ARRAY_SIZE(cell->sgsn_bvc); i++) {
-			if (cell->sgsn_bvc[i] == bvc)
-				cell->sgsn_bvc[i] = NULL;
-		}
+	if (bvc->cell) {
+		gbproxy_cell_cleanup_bvc(bvc->cell, bvc);
 		bvc->cell = NULL;
 	}
-
 	talloc_free(bvc);
 }
 
@@ -212,6 +199,21 @@ struct gbproxy_cell *gbproxy_cell_by_cellid(struct gbproxy_config *cfg, const st
 		}
 	}
 	return NULL;
+}
+
+void gbproxy_cell_cleanup_bvc(struct gbproxy_cell *cell, struct gbproxy_bvc *bvc)
+{
+	int i;
+
+	if (cell->bss_bvc == bvc)
+		return gbproxy_cell_free(cell);
+
+	/* we could also be a SGSN-side BVC */
+	for (i = 0; i < ARRAY_SIZE(cell->sgsn_bvc); i++) {
+		if (cell->sgsn_bvc[i] == bvc)
+			cell->sgsn_bvc[i] = NULL;
+	}
+
 }
 
 void gbproxy_cell_free(struct gbproxy_cell *cell)
