@@ -64,15 +64,27 @@ static int get_nsvc_state(struct ctrl_cmd *cmd, void *data)
 	/* NS-VCs for SGSN */
 	hash_for_each(cfg->sgsn_nses, i, nse_peer, list) {
 		nse = gprs_ns2_nse_by_nsei(nsi, nse_peer->nsei);
-		if (nse)
-			gprs_ns2_nse_foreach_nsvc(nse, &ctrl_nsvc_state_cb, cmd);
+		if (nse) {
+			struct nsvc_cb_data cb_data = {
+				.cmd = cmd,
+				.nsei = nse_peer->nsei,
+				.is_sgsn = true,
+			};
+			gprs_ns2_nse_foreach_nsvc(nse, &ctrl_nsvc_state_cb, &cb_data);
+		}
 	}
 
 	/* NS-VCs for BSS peers */
 	hash_for_each(cfg->bss_nses, i, nse_peer, list) {
 		nse = gprs_ns2_nse_by_nsei(nsi, nse_peer->nsei);
-		if (nse)
-			gprs_ns2_nse_foreach_nsvc(nse, &ctrl_nsvc_state_cb, cmd);
+		if (nse) {
+			struct nsvc_cb_data cb_data = {
+				.cmd = cmd,
+				.nsei = nse_peer->nsei,
+				.is_sgsn = true,
+			};
+			gprs_ns2_nse_foreach_nsvc(nse, &ctrl_nsvc_state_cb, &cb_data);
+		}
 	}
 
 	return CTRL_CMD_REPLY;
