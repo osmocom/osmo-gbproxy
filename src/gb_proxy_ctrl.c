@@ -103,6 +103,9 @@ static int get_gbproxy_state(struct ctrl_cmd *cmd, void *data)
 	hash_for_each(cfg->bss_nses, i, nse_peer, list) {
 		struct gbproxy_bvc *bvc;
 		hash_for_each(nse_peer->bvcs, j, bvc, list) {
+			if (bvc->bvci == 0)
+				continue;
+
 			struct gprs_ra_id *raid = &bvc->cell->id.raid;
 
 			cmd->reply = talloc_asprintf_append(cmd->reply, "%u,%u,%u-%u-%u-%u,%s\n",
@@ -127,8 +130,11 @@ static int get_num_peers(struct ctrl_cmd *cmd, void *data)
 	int i, j;
 
 	hash_for_each(cfg->bss_nses, i, nse_peer, list) {
-		hash_for_each(nse_peer->bvcs, j, bvc, list)
+		hash_for_each(nse_peer->bvcs, j, bvc, list) {
+			if (bvc->bvci == 0)
+				continue;
 			count++;
+		}
 	}
 
 	cmd->reply = talloc_strdup(cmd, "");
