@@ -1,3 +1,9 @@
+osmo-gbproxy (1:0.1.2) unstable; urgency=medium
+
+  * debian/control: remove dh-systemd build-depend
+
+ -- Oliver Smith <osmith@sysmocom.de>  Mon, 06 Sep 2021 17:40:02 +0200
+
 osmo-gbproxy (1:0.1.1) unstable; urgency=medium
 
   [ Daniel Willmann ]
