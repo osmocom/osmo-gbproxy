@@ -1627,6 +1627,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 					/* Block BVC, indicate BSS equipment failure */
 					uint8_t cause = BSSGP_CAUSE_EQUIP_FAIL;
 					osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_REQ_BLOCK, &cause);
+					gbproxy_bvc_free(sgsn_bvc);
 				}
 			}
 
