@@ -139,6 +139,9 @@ struct gbproxy_bvc {
 	/* PTP BVCI of this BVC */
 	uint16_t bvci;
 
+	/* Whether this BVC is inactive (removed from BSS-side) */
+	bool inactive;
+
 	/* Routing Area that this BVC is part of */
 	struct gprs_ra_id raid;
 
@@ -279,6 +282,7 @@ void gbprox_reset(struct gbproxy_config *cfg);
 #define NSE_F_BSS	0x0002
 
 struct gbproxy_bvc *gbproxy_bvc_by_bvci(struct gbproxy_nse *nse, uint16_t bvci);
+struct gbproxy_bvc *gbproxy_bvc_by_bvci_inactive(struct gbproxy_nse *nse, uint16_t bvci);
 struct gbproxy_bvc *gbproxy_bvc_alloc(struct gbproxy_nse *nse, uint16_t bvci);
 void gbproxy_bvc_free(struct gbproxy_bvc *bvc);
 int gbproxy_cleanup_bvcs(struct gbproxy_nse *nse, uint16_t bvci);

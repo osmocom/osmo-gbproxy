@@ -701,6 +701,8 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 	 * Removing and reallocating is needed becaus the ra_id/cell_id might have changed */
 	hash_for_each(cfg->sgsn_nses, i, sgsn_nse, list) {
 		struct gbproxy_bvc *sgsn_bvc = gbproxy_bvc_by_bvci(sgsn_nse, bvci);
+		if (!sgsn_bvc)
+			sgsn_bvc = gbproxy_bvc_by_bvci_inactive(sgsn_nse, bvci);
 		if (sgsn_bvc)
 			gbproxy_bvc_free(sgsn_bvc);
 
@@ -1374,8 +1376,12 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	case BSSGP_PDUT_BVC_BLOCK_ACK:
 		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
-		if (!sgsn_bvc)
-			goto err_no_bvc;
+		if (!sgsn_bvc) {
+			/* Check if BVC was blocked before */
+			sgsn_bvc = gbproxy_bvc_by_bvci_inactive(nse, bvci);
+			if (!sgsn_bvc)
+				goto err_no_bvc;
+		}
 		rc = osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_RX_BLOCK_ACK, msg);
 		break;
 	case BSSGP_PDUT_BVC_UNBLOCK_ACK:
@@ -1627,7 +1633,7 @@ void gprs_ns_prim_status_cb(struct gbproxy_config *cfg, struct osmo_gprs_ns2_pri
 					/* Block BVC, indicate BSS equipment failure */
 					uint8_t cause = BSSGP_CAUSE_EQUIP_FAIL;
 					osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_REQ_BLOCK, &cause);
-					gbproxy_bvc_free(sgsn_bvc);
+					sgsn_bvc->inactive = true;
 				}
 			}
 

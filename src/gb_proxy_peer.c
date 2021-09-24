@@ -62,7 +62,18 @@ struct gbproxy_bvc *gbproxy_bvc_by_bvci(struct gbproxy_nse *nse, uint16_t bvci)
 {
 	struct gbproxy_bvc *bvc;
 	hash_for_each_possible(nse->bvcs, bvc, list, bvci) {
-		if (bvc->bvci == bvci)
+		if (bvc->bvci == bvci && bvc->inactive == false)
+			return bvc;
+	}
+	return NULL;
+}
+
+/* Find the gbproxy_bvc by its BVCI. There can only be one match */
+struct gbproxy_bvc *gbproxy_bvc_by_bvci_inactive(struct gbproxy_nse *nse, uint16_t bvci)
+{
+	struct gbproxy_bvc *bvc;
+	hash_for_each_possible(nse->bvcs, bvc, list, bvci) {
+		if (bvc->bvci == bvci && bvc->inactive == true)
 			return bvc;
 	}
 	return NULL;
@@ -84,6 +95,7 @@ struct gbproxy_bvc *gbproxy_bvc_alloc(struct gbproxy_nse *nse, uint16_t bvci)
 		 nse->nsei);
 	osmo_identifier_sanitize_buf(idbuf, NULL, '_');
 	bvc->bvci = bvci;
+	bvc->inactive = false;
 	bvc->ctrg = rate_ctr_group_alloc(bvc, &bvc_ctrg_desc, (nse->nsei << 16) | bvci);
 	if (!bvc->ctrg) {
 		talloc_free(bvc);
