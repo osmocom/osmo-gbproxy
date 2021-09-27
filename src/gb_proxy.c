@@ -59,18 +59,17 @@
 extern void *tall_sgsn_ctx;
 
 static const struct rate_ctr_desc global_ctr_description[] = {
-	{ "inv-bvci",	    "Invalid BVC Identifier          " },
-	{ "inv-lai",	    "Invalid Location Area Identifier" },
-	{ "inv-rai",	    "Invalid Routing Area Identifier " },
-	{ "inv-nsei",	    "No BVC established for NSEI     " },
-	{ "proto-err:bss",  "BSSGP protocol error      (BSS )" },
-	{ "proto-err:sgsn", "BSSGP protocol error      (SGSN)" },
-	{ "not-supp:bss",   "Feature not supported     (BSS )" },
-	{ "not-supp:sgsn",  "Feature not supported     (SGSN)" },
-	{ "restart:sgsn",   "Restarted RESET procedure (SGSN)" },
-	{ "tx-err:sgsn",    "NS Transmission error     (SGSN)" },
-	{ "error",          "Other error                     " },
-	{ "mod-peer-err",   "Patch error: no peer            " },
+	[GBPROX_GLOB_CTR_INV_BVCI]		= { "inv-bvci",	    "Invalid BVC Identifier          " },
+	[GBPROX_GLOB_CTR_INV_LAI]		= { "inv-lai",	    "Invalid Location Area Identifier" },
+	[GBPROX_GLOB_CTR_INV_RAI]		= { "inv-rai",	    "Invalid Routing Area Identifier " },
+	[GBPROX_GLOB_CTR_INV_NSEI]		= { "inv-nsei",	    "No BVC established for NSEI     " },
+	[GBPROX_GLOB_CTR_PROTO_ERR_BSS]		= { "proto-err:bss",  "BSSGP protocol error      (BSS )" },
+	[GBPROX_GLOB_CTR_PROTO_ERR_SGSN]	= { "proto-err:sgsn", "BSSGP protocol error      (SGSN)" },
+	[GBPROX_GLOB_CTR_NOT_SUPPORTED_BSS]	= { "not-supp:bss",   "Feature not supported     (BSS )" },
+	[GBPROX_GLOB_CTR_NOT_SUPPORTED_SGSN]	= { "not-supp:sgsn",  "Feature not supported     (SGSN)" },
+	[GBPROX_GLOB_CTR_RESTART_RESET_SGSN]	= { "restart:sgsn",   "Restarted RESET procedure (SGSN)" },
+	[GBPROX_GLOB_CTR_TX_ERR_SGSN]		= { "tx-err:sgsn",    "NS Transmission error     (SGSN)" },
+	[GBPROX_GLOB_CTR_OTHER_ERR]		= { "error",          "Other error                     " },
 };
 
 static const struct rate_ctr_group_desc global_ctrg_desc = {
