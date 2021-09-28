@@ -1498,7 +1498,7 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	return rc;
 
 err_no_bvc:
-	LOGPNSE(nse, LOGL_ERROR, "Rx %s: Cannot find BVC\n", pdut_name);
+	LOGPNSE(nse, LOGL_ERROR, "Rx %s: Cannot find BVC %05u\n", pdut_name, bvci);
 	rate_ctr_inc(rate_ctr_group_get_ctr(cfg->ctrg, GBPROX_GLOB_CTR_INV_BVCI));
 	return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
 }
