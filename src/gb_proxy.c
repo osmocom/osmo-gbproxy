@@ -989,6 +989,28 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 	return gbprox_relay2nse(msg, sgsn->nse, 0);
 }
 
+static int gbproxy_tlli_from_status_pdu(struct msgb *msg, struct tlv_parsed *tp, uint32_t *tlli, char *log_pfx)
+{
+	int rc;
+	int pdu_len = TLVP_LEN(&tp[0], BSSGP_IE_PDU_IN_ERROR);
+	const uint8_t *pdu_data = TLVP_VAL(&tp[0], BSSGP_IE_PDU_IN_ERROR);
+	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
+	struct tlv_parsed tp_inner[2];
+
+	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp_inner, ARRAY_SIZE(tp_inner), bgph->pdu_type, bgph->data,
+				 pdu_len - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
+
+	if (rc < 0)
+		return rc;
+
+	if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_TLLI))
+		*tlli = osmo_load32be(TLVP_VAL(&tp_inner[0], BSSGP_IE_TLLI));
+	else
+		return -ENOENT;
+
+	return 0;
+}
+
 /* Receive an incoming signalling message from a BSS-side NS-VC */
 static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uint16_t ns_bvci)
 {
@@ -1079,9 +1101,33 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		break;
 	}
 	case BSSGP_PDUT_STATUS:
-		/* FIXME: inspect the erroneous PDU IE (if any) and check
-		 * if we can extract a TLLI/RNI to route it to the correct SGSN */
+	{
+		struct gbproxy_sgsn *sgsn;
+		/* Check if the status needs to be terminated locally */
+		uint8_t cause = *TLVP_VAL(&tp[0], BSSGP_IE_CAUSE);
+		if (cause == BSSGP_CAUSE_UNKNOWN_BVCI || cause == BSSGP_CAUSE_BVCI_BLOCKED) {
+			/* Log and handle locally */
+			ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
+			LOGP(DGPRS, LOGL_ERROR, "%s Rx STATUS with cause %s for PtP-BVC %05u\n", log_pfx,
+				bssgp_cause_str(cause), ptp_bvci);
+			/* FIXME: Remove/block our BVC if present? */
+			break;
+		}
+
+		LOGP(DGPRS, LOGL_INFO, "Forwarding STATUS with cause %s\n", bssgp_cause_str(cause));
+		if (gbproxy_tlli_from_status_pdu(msg, tp, &tlli, log_pfx) == 0)
+			sgsn = gbproxy_select_sgsn(nse->cfg, &tlli);
+		else
+			sgsn = gbproxy_select_sgsn(nse->cfg, NULL);
+
+		if (!sgsn) {
+			rc = -EINVAL;
+			break;
+		}
+
+		rc = gbprox_relay2nse(msg, sgsn->nse, 0);
 		break;
+	}
 	case BSSGP_PDUT_RAN_INFO:
 	case BSSGP_PDUT_RAN_INFO_REQ:
 	case BSSGP_PDUT_RAN_INFO_ACK:
