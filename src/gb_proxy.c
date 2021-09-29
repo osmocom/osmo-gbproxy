@@ -1003,10 +1003,16 @@ static int gbproxy_tlli_from_status_pdu(struct msgb *msg, struct tlv_parsed *tp,
 	if (rc < 0)
 		return rc;
 
-	if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_TLLI))
+	if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_TLLI)) {
 		*tlli = osmo_load32be(TLVP_VAL(&tp_inner[0], BSSGP_IE_TLLI));
-	else
+	} else if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_TMSI)) {
+		/* we treat the TMSI like a TLLI and extract the NRI from it */
+		*tlli = osmo_load32be(TLVP_VAL(&tp_inner[0], BSSGP_IE_TMSI));
+		/* Convert the TMSI into a FOREIGN TLLI so it is routed appropriately */
+		*tlli = gprs_tmsi2tlli(*tlli, TLLI_FOREIGN);
+	} else {
 		return -ENOENT;
+	}
 
 	return 0;
 }
