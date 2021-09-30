@@ -1380,7 +1380,6 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	uint16_t bvci;
 	char log_pfx[32];
 	int rc = 0;
-	int cause;
 	int i;
 	bool paging_bc = false;
 
@@ -1475,20 +1474,41 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		rc = gbprox_rx_paging(nse, msg, pdut_name, &tp[0], ns_bvci, paging_bc);
 		break;
 	case BSSGP_PDUT_STATUS:
-		/* Some exception has occurred */
-		cause = *TLVP_VAL(&tp[0], BSSGP_IE_CAUSE);
-		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s) ", cause,
+	{
+		struct gbproxy_nse *nse_peer;
+		uint32_t tlli;
+
+		/* Check if the status needs to be terminated locally */
+		uint8_t cause = *TLVP_VAL(&tp[0], BSSGP_IE_CAUSE);
+
+		if (cause == BSSGP_CAUSE_UNKNOWN_BVCI || cause == BSSGP_CAUSE_BVCI_BLOCKED) {
+			/* Log and handle locally, BVCI should be present for these causes */
+			if (!TLVP_PRESENT(&tp[0], BSSGP_IE_BVCI)) {
+				LOGPNSE(nse, LOGL_ERROR, "Rx STATUS cause=0x%02x(%s), but BVCI is missing\n", cause,
+					bssgp_cause_str(cause));
+				break;
+			}
+			uint16_t ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
+			LOGPNSE(nse, LOGL_ERROR, "Rx STATUS cause=0x%02x(%s) for PtP-BVC %05u\n", cause,
+				bssgp_cause_str(cause), ptp_bvci);
+			/* FIXME: Remove/block the other BSS/SGSN BVCs if present? */
+			break;
+		}
+
+		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s)\n", cause,
 			bssgp_cause_str(cause));
-		if (TLVP_PRES_LEN(&tp[0], BSSGP_IE_BVCI, 2)) {
-			bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
-			LOGPC(DGPRS, LOGL_NOTICE, "BVCI=%05u\n", bvci);
-			sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
-			/* don't send STATUS in response to STATUS if !bvc */
-			if (sgsn_bvc && sgsn_bvc->cell && sgsn_bvc->cell->bss_bvc)
-				rc = gbprox_relay2peer(msg, sgsn_bvc->cell->bss_bvc, ns_bvci);
-		} else
-			LOGPC(DGPRS, LOGL_NOTICE, "\n");
+
+		if (gbproxy_tlli_from_status_pdu(msg, tp, &tlli, log_pfx) == 0) {
+			nse_peer = gbproxy_nse_by_tlli(cfg, tlli);
+			if (nse_peer)
+				return gbprox_relay2nse(msg, nse_peer, 0);
+		}
+
+		LOGPNSE(nse, LOGL_ERROR, "Unable to handle STATUS cause=0x%02x(%s)\n", cause,
+			bssgp_cause_str(cause));
+
 		break;
+	}
 	/* those only exist in the SGSN -> BSS direction */
 	case BSSGP_PDUT_SUSPEND_ACK:
 	case BSSGP_PDUT_SUSPEND_NACK:
