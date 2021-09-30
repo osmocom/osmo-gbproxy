@@ -997,6 +997,7 @@ static int gbproxy_tlli_from_status_pdu(struct msgb *msg, struct tlv_parsed *tp,
 	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
 	struct tlv_parsed tp_inner[2];
 
+	/* TODO: Parse partial messages as well */
 	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp_inner, ARRAY_SIZE(tp_inner), bgph->pdu_type, bgph->data,
 				 pdu_len - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
 
@@ -1111,16 +1112,19 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		struct gbproxy_sgsn *sgsn;
 		/* Check if the status needs to be terminated locally */
 		uint8_t cause = *TLVP_VAL(&tp[0], BSSGP_IE_CAUSE);
+
 		if (cause == BSSGP_CAUSE_UNKNOWN_BVCI || cause == BSSGP_CAUSE_BVCI_BLOCKED) {
 			/* Log and handle locally */
 			ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
-			LOGP(DGPRS, LOGL_ERROR, "%s Rx STATUS with cause %s for PtP-BVC %05u\n", log_pfx,
+			LOGPNSE(nse, LOGL_ERROR, "Rx STATUS cause=0x%02x(%s) for PtP-BVC %05u\n", cause,
 				bssgp_cause_str(cause), ptp_bvci);
 			/* FIXME: Remove/block our BVC if present? */
 			break;
 		}
 
-		LOGP(DGPRS, LOGL_INFO, "Forwarding STATUS with cause %s\n", bssgp_cause_str(cause));
+		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s) ", cause,
+			bssgp_cause_str(cause));
+
 		if (gbproxy_tlli_from_status_pdu(msg, tp, &tlli, log_pfx) == 0)
 			sgsn = gbproxy_select_sgsn(nse->cfg, &tlli);
 		else
