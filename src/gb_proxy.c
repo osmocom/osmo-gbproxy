@@ -1018,6 +1018,30 @@ static int gbproxy_tlli_from_status_pdu(struct msgb *msg, struct tlv_parsed *tp,
 	return 0;
 }
 
+/* Extract the BVCI from the PDU-in-error of the STATUS PDU (if available) */
+static int gbproxy_bvci_from_status_pdu(struct tlv_parsed *tp, uint16_t *bvci, char *log_pfx)
+{
+	int rc;
+	int pdu_len = TLVP_LEN(&tp[0], BSSGP_IE_PDU_IN_ERROR);
+	const uint8_t *pdu_data = TLVP_VAL(&tp[0], BSSGP_IE_PDU_IN_ERROR);
+	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
+	struct tlv_parsed tp_inner[2];
+
+	/* TODO: Parse partial messages as well */
+	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp_inner, ARRAY_SIZE(tp_inner), bgph->pdu_type, bgph->data,
+				 pdu_len - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
+
+	if (rc < 0)
+		return rc;
+
+	if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_BVCI))
+		*bvci = ntohs(tlvp_val16_unal(&tp_inner[0], BSSGP_IE_BVCI));
+	else
+		return -ENOENT;
+
+	return 0;
+}
+
 /* Receive an incoming signalling message from a BSS-side NS-VC */
 static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uint16_t ns_bvci)
 {
@@ -1497,6 +1521,19 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 
 		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s)\n", cause,
 			bssgp_cause_str(cause));
+
+
+		if (gbproxy_bvci_from_status_pdu(tp, &bvci, log_pfx) == 0 && bvci != 0) {
+			struct gbproxy_cell *cell = gbproxy_cell_by_bvci(cfg, bvci);
+
+			if ((!cell || !cell->bss_bvc || !cell->bss_bvc->nse)) {
+				LOGPNSE(nse, LOGL_ERROR, "Rx STATUS cause=0x%02x(%s), but can't find NSE for cell\n",
+					cause, bssgp_cause_str(cause));
+				break;
+			}
+
+			return gbprox_relay2nse(msg, cell->bss_bvc->nse, 0);
+		}
 
 		if (gbproxy_tlli_from_status_pdu(msg, tp, &tlli, log_pfx) == 0) {
 			nse_peer = gbproxy_nse_by_tlli(cfg, tlli);
