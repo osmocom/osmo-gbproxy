@@ -989,7 +989,8 @@ static int gbprox_rx_rim_from_bss(struct tlv_parsed *tp, struct gbproxy_nse *nse
 	return gbprox_relay2nse(msg, sgsn->nse, 0);
 }
 
-static int gbproxy_tlli_from_status_pdu(struct msgb *msg, struct tlv_parsed *tp, uint32_t *tlli, char *log_pfx)
+/* Extract the TLLI from the PDU-in-error of the STATUS PDU (if available) */
+static int gbproxy_tlli_from_status_pdu(struct tlv_parsed *tp, uint32_t *tlli, char *log_pfx)
 {
 	int rc;
 	int pdu_len = TLVP_LEN(&tp[0], BSSGP_IE_PDU_IN_ERROR);
@@ -1149,7 +1150,7 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s) ", cause,
 			bssgp_cause_str(cause));
 
-		if (gbproxy_tlli_from_status_pdu(msg, tp, &tlli, log_pfx) == 0)
+		if (gbproxy_tlli_from_status_pdu(tp, &tlli, log_pfx) == 0)
 			sgsn = gbproxy_select_sgsn(nse->cfg, &tlli);
 		else
 			sgsn = gbproxy_select_sgsn(nse->cfg, NULL);
@@ -1535,7 +1536,8 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 			return gbprox_relay2nse(msg, cell->bss_bvc->nse, 0);
 		}
 
-		if (gbproxy_tlli_from_status_pdu(msg, tp, &tlli, log_pfx) == 0) {
+		/* We can only forward this TLLI if it's in the cache (which only happens on suspend/resume) */
+		if (gbproxy_tlli_from_status_pdu(tp, &tlli, log_pfx) == 0) {
 			nse_peer = gbproxy_nse_by_tlli(cfg, tlli);
 			if (nse_peer)
 				return gbprox_relay2nse(msg, nse_peer, 0);
