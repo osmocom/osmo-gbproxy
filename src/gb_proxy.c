@@ -380,6 +380,8 @@ static int gbprox_bss2sgsn_tlli(struct gbproxy_cell *cell, struct msgb *msg, con
 	return gbprox_relay2peer(msg, sgsn_bvc, sig_bvci ? 0 : sgsn_bvc->bvci);
 }
 
+static int gbproxy_tlli_from_status_pdu(struct tlv_parsed *tp, uint32_t *tlli, char *log_pfx);
+
 /* Receive an incoming PTP message from a BSS-side NS-VC */
 static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uint16_t ns_bvci)
 {
@@ -496,11 +498,27 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		osmo_fsm_inst_dispatch(bss_bvc->fi, BSSGP_BVCFSM_E_RX_FC_BVC, msg);
 		break;
 	case BSSGP_PDUT_STATUS:
-		/* TODO: Implement by inspecting the contained PDU */
-		if (!TLVP_PRESENT(&tp, BSSGP_IE_PDU_IN_ERROR))
+	{
+		struct gbproxy_sgsn *sgsn;
+		/* Check if the status needs to be terminated locally */
+		uint8_t cause = *TLVP_VAL(&tp, BSSGP_IE_CAUSE);
+
+		LOGPNSE(nse, LOGL_NOTICE, "Rx STATUS cause=0x%02x(%s)\n", cause,
+			bssgp_cause_str(cause));
+
+		if (gbproxy_tlli_from_status_pdu(&tp, &tlli, log_pfx) == 0)
+			sgsn = gbproxy_select_sgsn(nse->cfg, &tlli);
+		else
+			sgsn = gbproxy_select_sgsn(nse->cfg, NULL);
+
+		if (!sgsn) {
+			rc = -EINVAL;
 			break;
-		LOGPBVC(bss_bvc, LOGL_ERROR, "Rx %s: Implementation missing\n", pdut_name);
+		}
+
+		rc = gbprox_relay2nse(msg, sgsn->nse, ns_bvci);
 		break;
+	}
 	}
 
 	return 0;
