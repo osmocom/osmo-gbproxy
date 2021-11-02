@@ -1009,18 +1009,18 @@ static int gbproxy_tlli_from_status_pdu(struct tlv_parsed *tp, uint32_t *tlli, c
 	int pdu_len = TLVP_LEN(&tp[0], BSSGP_IE_PDU_IN_ERROR);
 	const uint8_t *pdu_data = TLVP_VAL(&tp[0], BSSGP_IE_PDU_IN_ERROR);
 	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
-	struct tlv_parsed tp_inner[2];
+	struct tlv_parsed tp_inner;
 
 	/* TODO: Parse partial messages as well */
-	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner[0], log_pfx);
+	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner, log_pfx);
 	if (rc < 0)
 		return rc;
 
-	if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_TLLI)) {
-		*tlli = osmo_load32be(TLVP_VAL(&tp_inner[0], BSSGP_IE_TLLI));
-	} else if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_TMSI)) {
+	if (TLVP_PRESENT(&tp_inner, BSSGP_IE_TLLI)) {
+		*tlli = osmo_load32be(TLVP_VAL(&tp_inner, BSSGP_IE_TLLI));
+	} else if (TLVP_PRESENT(&tp_inner, BSSGP_IE_TMSI)) {
 		/* we treat the TMSI like a TLLI and extract the NRI from it */
-		*tlli = osmo_load32be(TLVP_VAL(&tp_inner[0], BSSGP_IE_TMSI));
+		*tlli = osmo_load32be(TLVP_VAL(&tp_inner, BSSGP_IE_TMSI));
 		/* Convert the TMSI into a FOREIGN TLLI so it is routed appropriately */
 		*tlli = gprs_tmsi2tlli(*tlli, TLLI_FOREIGN);
 	} else {
@@ -1037,15 +1037,15 @@ static int gbproxy_bvci_from_status_pdu(struct tlv_parsed *tp, uint16_t *bvci, c
 	int pdu_len = TLVP_LEN(&tp[0], BSSGP_IE_PDU_IN_ERROR);
 	const uint8_t *pdu_data = TLVP_VAL(&tp[0], BSSGP_IE_PDU_IN_ERROR);
 	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
-	struct tlv_parsed tp_inner[2];
+	struct tlv_parsed tp_inner;
 
 	/* TODO: Parse partial messages as well */
-	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner[0], log_pfx);
+	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner, log_pfx);
 	if (rc < 0)
 		return rc;
 
-	if (TLVP_PRESENT(&tp_inner[0], BSSGP_IE_BVCI))
-		*bvci = ntohs(tlvp_val16_unal(&tp_inner[0], BSSGP_IE_BVCI));
+	if (TLVP_PRESENT(&tp_inner, BSSGP_IE_BVCI))
+		*bvci = ntohs(tlvp_val16_unal(&tp_inner, BSSGP_IE_BVCI));
 	else
 		return -ENOENT;
 
