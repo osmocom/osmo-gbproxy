@@ -578,7 +578,7 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 
 	rc = gbproxy_decode_bssgp(bgph, msgb_bssgp_len(msg), &tp, log_pfx);
 	if (rc < 0) {
-		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_BSS));
+		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_SGSN));
 		return tx_status_from_tlvp(nse, rc, msg);
 	}
 	/* hack to get both msg + tlv_parsed passed via osmo_fsm_inst_dispatch */
