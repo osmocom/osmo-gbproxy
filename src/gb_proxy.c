@@ -380,6 +380,29 @@ static int gbprox_bss2sgsn_tlli(struct gbproxy_cell *cell, struct msgb *msg, con
 	return gbprox_relay2peer(msg, sgsn_bvc, sig_bvci ? 0 : sgsn_bvc->bvci);
 }
 
+static int gbproxy_decode_bssgp(const struct bssgp_normal_hdr *bgph, int msg_len, struct tlv_parsed *tp, const char *log_pfx)
+{
+	int rc;
+
+	/* UNITDATA PDUs have a different header than the other PDUs */
+	if (bgph->pdu_type == BSSGP_PDUT_UL_UNITDATA || bgph->pdu_type == BSSGP_PDUT_DL_UNITDATA) {
+		const struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) bgph;
+		if (msg_len < sizeof(*budh))
+			return -OSMO_TLVP_ERR_MAND_IE_MISSING;
+		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, 1, budh->pdu_type, budh->data,
+					 msg_len - sizeof(*budh), 0, 0, DGPRS, log_pfx);
+		/* populate TLLI from the fixed headser into the TLV-parsed array so later code
+		 * doesn't have to worry where the TLLI came from */
+		tp->lv[BSSGP_IE_TLLI].len = 4;
+		tp->lv[BSSGP_IE_TLLI].val = (const uint8_t *) &budh->tlli;
+	} else {
+		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, 1, bgph->pdu_type, bgph->data,
+					 msg_len - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
+	}
+
+	return rc;
+}
+
 static int gbproxy_tlli_from_status_pdu(struct tlv_parsed *tp, uint32_t *tlli, char *log_pfx);
 
 /* Receive an incoming PTP message from a BSS-side NS-VC */
@@ -419,21 +442,7 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
 	}
 
-	/* UL_UNITDATA has a different header than all other uplink PDUs */
-	if (bgph->pdu_type == BSSGP_PDUT_UL_UNITDATA) {
-		const struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
-		if (msgb_bssgp_len(msg) < sizeof(*budh))
-			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
-		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, bgph->pdu_type, budh->data,
-					 msgb_bssgp_len(msg) - sizeof(*budh), 0, 0, DGPRS, log_pfx);
-		/* populate TLLI from the fixed headser into the TLV-parsed array so later code
-		 * doesn't have to worry where the TLLI came from */
-		tp.lv[BSSGP_IE_TLLI].len = 4;
-		tp.lv[BSSGP_IE_TLLI].val = (const uint8_t *) &budh->tlli;
-	} else {
-		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, bgph->pdu_type, bgph->data,
-					 msgb_bssgp_len(msg) - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
-	}
+	rc = gbproxy_decode_bssgp(bgph, msgb_bssgp_len(msg), &tp, log_pfx);
 	if (rc < 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_BSS));
 		return tx_status_from_tlvp(nse, rc, msg);
@@ -567,21 +576,7 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		return tx_status(nse, ns_bvci, BSSGP_CAUSE_BVCI_BLOCKED, &ns_bvci, msg);
 	}
 
-	/* DL_UNITDATA has a different header than all other uplink PDUs */
-	if (bgph->pdu_type == BSSGP_PDUT_DL_UNITDATA) {
-		const struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) msgb_bssgph(msg);
-		if (msgb_bssgp_len(msg) < sizeof(*budh))
-			return tx_status(nse, ns_bvci, BSSGP_CAUSE_INV_MAND_INF, NULL, msg);
-		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, bgph->pdu_type, budh->data,
-					 msgb_bssgp_len(msg) - sizeof(*budh), 0, 0, DGPRS, log_pfx);
-		/* populate TLLI from the fixed headser into the TLV-parsed array so later code
-		 * doesn't have to worry where the TLLI came from */
-		tp.lv[BSSGP_IE_TLLI].len = 4;
-		tp.lv[BSSGP_IE_TLLI].val = (const uint8_t *) &budh->tlli;
-	} else {
-		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, &tp, 1, bgph->pdu_type, bgph->data,
-					 msgb_bssgp_len(msg) - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
-	}
+	rc = gbproxy_decode_bssgp(bgph, msgb_bssgp_len(msg), &tp, log_pfx);
 	if (rc < 0) {
 		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_PROTO_ERR_BSS));
 		return tx_status_from_tlvp(nse, rc, msg);
@@ -1017,9 +1012,7 @@ static int gbproxy_tlli_from_status_pdu(struct tlv_parsed *tp, uint32_t *tlli, c
 	struct tlv_parsed tp_inner[2];
 
 	/* TODO: Parse partial messages as well */
-	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp_inner, ARRAY_SIZE(tp_inner), bgph->pdu_type, bgph->data,
-				 pdu_len - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
-
+	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner[0], log_pfx);
 	if (rc < 0)
 		return rc;
 
@@ -1047,9 +1040,7 @@ static int gbproxy_bvci_from_status_pdu(struct tlv_parsed *tp, uint16_t *bvci, c
 	struct tlv_parsed tp_inner[2];
 
 	/* TODO: Parse partial messages as well */
-	rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp_inner, ARRAY_SIZE(tp_inner), bgph->pdu_type, bgph->data,
-				 pdu_len - sizeof(*bgph), 0, 0, DGPRS, log_pfx);
-
+	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner[0], log_pfx);
 	if (rc < 0)
 		return rc;
 
