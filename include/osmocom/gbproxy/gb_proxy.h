@@ -142,9 +142,6 @@ struct gbproxy_bvc {
 	/* Whether this BVC is inactive (removed from BSS-side) */
 	bool inactive;
 
-	/* Routing Area that this BVC is part of */
-	struct gprs_ra_id raid;
-
 	/* Counter */
 	struct rate_ctr_group *ctrg;
 

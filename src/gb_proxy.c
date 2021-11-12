@@ -710,7 +710,7 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 	}
 
 	/* Reallocate SGSN-side BVCs of the cell, and reset them
-	 * Removing and reallocating is needed becaus the ra_id/cell_id might have changed */
+	 * Removing and reallocating is needed because the ra_id/cell_id might have changed */
 	hash_for_each(cfg->sgsn_nses, i, sgsn_nse, list) {
 		struct gbproxy_bvc *sgsn_bvc = gbproxy_bvc_by_bvci(sgsn_nse, bvci);
 		if (!sgsn_bvc)
@@ -721,7 +721,6 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 		sgsn_bvc = gbproxy_bvc_alloc(sgsn_nse, bvci);
 		OSMO_ASSERT(sgsn_bvc);
 		sgsn_bvc->cell = bvc->cell;
-		memcpy(&sgsn_bvc->raid, &bvc->cell->id.raid, sizeof(sgsn_bvc->raid));
 		sgsn_bvc->fi = bssgp_bvc_fsm_alloc_ptp_bss(sgsn_bvc, cfg->nsi, sgsn_nse->nsei,
 							   bvci, ra_id, cell_id);
 		OSMO_ASSERT(sgsn_bvc->fi);
@@ -887,34 +886,6 @@ static int rx_bvc_reset_from_bss(struct gbproxy_nse *nse, struct msgb *msg, stru
 			}
 			bssgp_bvc_fsm_set_max_pdu_len(from_bvc->fi, nse->max_sdu_len);
 			bssgp_bvc_fsm_set_ops(from_bvc->fi, &bss_ptp_bvc_fsm_ops, from_bvc);
-		}
-#if 0
-		/* Could have moved to a different NSE */
-		if (!check_bvc_nsei(from_bvc, nsei)) {
-			LOGPBVC(from_bvc, LOGL_NOTICE, "moving bvc to NSE(%05u)\n", nsei);
-
-			struct gbproxy_nse *nse_new = gbproxy_nse_by_nsei(cfg, nsei, false);
-			if (!nse_new) {
-				LOGP(DGPRS, LOGL_NOTICE, "NSE(%05u) Got PtP BVC reset before signalling reset for "
-					"BVCI=%05u\n", bvci, nsei);
-				tx_status(nse, ns_bvci, BSSGP_CAUSE_PDU_INCOMP_STATE, NULL, msg);
-				return 0;
-			}
-
-			/* Move bvc to different NSE */
-			gbproxy_bvc_move(from_bvc, nse_new);
-		}
-#endif
-		/* FIXME: do we need this, if it happens within FSM? */
-		if (TLVP_PRES_LEN(tp, BSSGP_IE_CELL_ID, 8)) {
-			struct gprs_ra_id raid;
-			/* We have a Cell Identifier present in this
-			 * PDU, this means we can extend our local
-			 * state information about this particular cell
-			 * */
-			gsm48_parse_ra(&raid, TLVP_VAL(tp, BSSGP_IE_CELL_ID));
-			memcpy(&from_bvc->raid, &raid, sizeof(from_bvc->raid));
-			LOGPBVC(from_bvc, LOGL_INFO, "Cell ID %s\n", osmo_rai_name(&raid));
 		}
 	}
 	/* hand into FSM for further processing */
@@ -1267,7 +1238,11 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 		/* iterate over all bvcs and dispatch the paging to each matching one */
 		hash_for_each(cfg->bss_nses, i, nse, list) {
 			hash_for_each(nse->bvcs, j, bss_bvc, list) {
-				if (gsm48_ra_equal(&bss_bvc->raid, &raid)) {
+				/* Skip BVCs without a cell (e.g. signalling) */
+				if (!bss_bvc->cell)
+					continue;
+
+				if (gsm48_ra_equal(&bss_bvc->cell->id.raid, &raid)) {
 					LOGPNSE(nse, LOGL_INFO, "Rx %s: routing to NSE (RAI match)\n",
 						pdut_name);
 					gbprox_relay2peer(msg, bss_bvc, ns_bvci);
@@ -1283,7 +1258,11 @@ static int gbprox_rx_paging(struct gbproxy_nse *sgsn_nse, struct msgb *msg, cons
 		/* iterate over all bvcs and dispatch the paging to each matching one */
 		hash_for_each(cfg->bss_nses, i, nse, list) {
 			hash_for_each(nse->bvcs, j, bss_bvc, list) {
-				gsm48_encode_ra(&lac, &bss_bvc->raid);
+				/* Skip BVCs without a cell (e.g. signalling) */
+				if (!bss_bvc->cell)
+					continue;
+
+				gsm48_encode_ra(&lac, &bss_bvc->cell->id.raid);
 				if (!memcmp(&lac, TLVP_VAL(tp, BSSGP_IE_LOCATION_AREA), 5)) {
 					LOGPNSE(nse, LOGL_INFO, "Rx %s: routing to NSE (LAI match)\n",
 						pdut_name);
