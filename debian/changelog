@@ -1,3 +1,64 @@
+osmo-gbproxy (1:0.2.0) unstable; urgency=medium
+
+  [ Pau Espin Pedrol ]
+  * Support setting rt-prio and cpu-affinity mask through VTY
+  * Avoid sending tx_status upon rx of RIM messages
+  * Use new stat item/ctr getter APIs
+
+  [ Daniel Willmann ]
+  * gbproxy_main: Fix naming bsc_hack/nsip_proxy -> (osmo-)gbproxy
+  * manual: Update manuals, include sgsn pooling and NS variants
+  * manuals: Regenerate counters/VTY through docker
+  * Remove some outdated TODO/comments
+  * gb_proxy.h: Use pragma once instead of ifndef
+  * Update the max_sdu_len from NS
+  * Handle GPRS_NS2_AFF_CAUSE_FAILURE
+  * Remove osmo-sgsn relics
+  * gbproxy: Don't free NSE/BVC0 if SGSN NSE goes down
+  * gbproxy_main: Add ctrl vty commands
+  * gb_proxy: Ensure cell info is up to date when receiving PTP-BVC reset
+  * gbproxy_main: Process options after all initialization is done
+  * examples/manuals: Improve/update ns-related documentation
+  * Don't route messages to an SGSN if it is down
+  * manual: Update counters, add proper chapter for counters
+  * gbproxy_vty: Remove redundant command "show gbproxy links"
+  * manual: Add section describing show gbproxy command usage
+  * manual: Add chapter describing osmo counters in general
+  * gbproxy: Add usage flag to the imsi_cache
+  * gbproxy: Forward MS_REGISTR_ENQ/_RESP correctly
+  * gbproxy_peer: Set rate_ctr name for gbproxy_peer stats
+  * gbproxy_peer: Free a cell as soon as no BSS BVC uses it
+  * gbproxy_ctrl: Fix crash in nsvc-state ctrl command
+  * gbproxy_ctrl: Ignore SIG-BVCI in ctrl commands
+  * gbproxy: Remove SGSN-side BVC after sending BVC-BLOCK
+  * gbproxy: Avoid sending STATUS on unexpected BLOCK_ACK
+  * gbproxy: Fix stats when no BVC could be found
+  * gbproxy: Use designated initializers for global_ctr_description
+  * gbproxy: Improve log message when no bvc is found (include bvci)
+  * gbproxy: Route BSSGP STATUS with PDU_IN_ERROR containing a TLLI
+  * gpproxy: Route BSSGP STATUS with PDU_IN_ERROR containing a TMSI
+  * gbproxy: Add comment, improve log message in gbproxy_tlli_from_status_pdu
+  * gbproxy: Improve STATUS handling from SGSN
+  * gbproxy: Route DL STATUS with BVCI on SIG-BVC
+  * gbproxy: Add comment, remove unused param in gbproxy_tlli_from_status_pdu
+  * gbproxy: Route STATUS in PtP-BVC by TLLI/TMSI as well
+  * gbproxy: Move BSSGP decoding into its own function and use it
+  * gbproxy: Increase correct counter when BSSGP decode from SGSN fails
+  * gbproxy: Only use one struct tlv_parsed for gbproxy_decode_bssgp
+  * gbproxy: Remove duplicate struct gprs_ra_id handling
+
+  [ Harald Welte ]
+  * vty: Print CellId along with RA-ID
+
+  [ Oliver Smith ]
+  * doc: include gb-ns2.adoc, not gb-variants.adoc
+  * gitignore: add gbproxy_vty_reference.xml
+  * examples/osmo-gbproxy.cfg: fix osmo-sgsn conflict
+  * debian/control: remove dh-systemd build-depend
+  * Revert "Turn some compiler warnings into errors"
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 16 Nov 2021 18:03:02 +0100
+
 osmo-gbproxy (1:0.1.0) unstable; urgency=medium
 
   [ Philipp Maier ]
