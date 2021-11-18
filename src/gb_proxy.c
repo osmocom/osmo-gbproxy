@@ -982,9 +982,9 @@ static int gbproxy_tlli_from_status_pdu(struct tlv_parsed *tp, uint32_t *tlli, c
 	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
 	struct tlv_parsed tp_inner;
 
-	/* TODO: Parse partial messages as well */
 	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner, log_pfx);
-	if (rc < 0)
+	/* Ignore decode failure due to truncated message */
+	if (rc < 0 && rc != OSMO_TLVP_ERR_OFS_BEYOND_BUFFER)
 		return rc;
 
 	if (TLVP_PRESENT(&tp_inner, BSSGP_IE_TLLI)) {
@@ -1010,9 +1010,9 @@ static int gbproxy_bvci_from_status_pdu(struct tlv_parsed *tp, uint16_t *bvci, c
 	struct bssgp_normal_hdr *bgph = (struct bssgp_normal_hdr *)pdu_data;
 	struct tlv_parsed tp_inner;
 
-	/* TODO: Parse partial messages as well */
 	rc = gbproxy_decode_bssgp(bgph, pdu_len, &tp_inner, log_pfx);
-	if (rc < 0)
+	/* Ignore decode failure due to truncated message */
+	if (rc < 0 && rc != OSMO_TLVP_ERR_OFS_BEYOND_BUFFER)
 		return rc;
 
 	if (TLVP_PRESENT(&tp_inner, BSSGP_IE_BVCI))
