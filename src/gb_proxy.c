@@ -388,7 +388,7 @@ static int gbproxy_decode_bssgp(const struct bssgp_normal_hdr *bgph, int msg_len
 	if (bgph->pdu_type == BSSGP_PDUT_UL_UNITDATA || bgph->pdu_type == BSSGP_PDUT_DL_UNITDATA) {
 		const struct bssgp_ud_hdr *budh = (struct bssgp_ud_hdr *) bgph;
 		if (msg_len < sizeof(*budh))
-			return -OSMO_TLVP_ERR_MAND_IE_MISSING;
+			return OSMO_TLVP_ERR_MAND_IE_MISSING;
 		rc = osmo_tlv_prot_parse(&osmo_pdef_bssgp, tp, 1, budh->pdu_type, budh->data,
 					 msg_len - sizeof(*budh), 0, 0, DGPRS, log_pfx);
 		/* populate TLLI from the fixed headser into the TLV-parsed array so later code
