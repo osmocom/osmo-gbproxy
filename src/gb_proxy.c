@@ -1151,15 +1151,27 @@ static int gbprox_rx_sig_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 		rc = gbprox_rx_rim_from_bss(tp, nse, msg, log_pfx, pdut_name);
 		break;
 	case BSSGP_PDUT_LLC_DISCARD:
-	case BSSGP_PDUT_FLUSH_LL_ACK:
 		/* route based on BVCI + TLLI */
 		ptp_bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		tlli = osmo_load32be(TLVP_VAL(&tp[0], BSSGP_IE_TLLI));
 		from_bvc = gbproxy_bvc_by_bvci(nse, ptp_bvci);
 		if (!from_bvc)
 			goto err_no_bvc;
-		gbprox_bss2sgsn_tlli(from_bvc->cell, msg, &tlli, true);
+		rc = gbprox_bss2sgsn_tlli(from_bvc->cell, msg, &tlli, true);
 		break;
+	case BSSGP_PDUT_FLUSH_LL_ACK:
+	{
+		/* Route based on TLLI */
+		tlli = osmo_load32be(TLVP_VAL(&tp[0], BSSGP_IE_TLLI));
+		struct gbproxy_sgsn *sgsn = gbproxy_select_sgsn(nse->cfg, &tlli);
+		if (!sgsn) {
+			rc = -EINVAL;
+			break;
+		}
+
+		rc = gbprox_relay2nse(msg, sgsn->nse, 0);
+		break;
+	}
 	case BSSGP_PDUT_PAGING_PS_REJECT:
 	case BSSGP_PDUT_DUMMY_PAGING_PS_RESP:
 	{
@@ -1459,6 +1471,10 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		rc = osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_RX_UNBLOCK_ACK, msg);
 		break;
 	case BSSGP_PDUT_FLUSH_LL:
+		/* TODO: If new BVCI is on different NSE we should remove the new BVCI so the
+		 * message is interpreted as a request to delete the PDUs, not forward them.
+		 * If we negotiate Inter-NSE re-routing or LCS-procedures we can also
+		 * add the NSEI TLV to trigger re-routing the PDUs */
 		/* simple case: BVCI IE is mandatory */
 		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
