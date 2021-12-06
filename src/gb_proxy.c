@@ -682,8 +682,10 @@ static void bss_ptp_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct g
 				LOGPBVC(bvc->cell->bss_bvc, LOGL_NOTICE, "Destroying due to conflicting "
 					"BVCI configuration (new NSEI=%05u)!\n", bvc->nse->nsei);
 				gbproxy_bvc_free(bvc->cell->bss_bvc);
+				bvc->cell = NULL;
+			} else {
+				LOGPBVC(bvc, LOGL_ERROR, "Found cell without BSS BVC, this should not happen!");
 			}
-			bvc->cell->bss_bvc = bvc;
 		}
 	}
 

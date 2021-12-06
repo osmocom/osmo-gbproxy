@@ -217,8 +217,16 @@ void gbproxy_cell_cleanup_bvc(struct gbproxy_cell *cell, struct gbproxy_bvc *bvc
 {
 	int i;
 
-	if (cell->bss_bvc == bvc)
+	if (cell->bss_bvc == bvc) {
+		/* Remove the whole cell including all BVCs */
+		for (i = 0; i < ARRAY_SIZE(cell->sgsn_bvc); i++) {
+			if (cell->sgsn_bvc[i]) {
+				gbproxy_bvc_free(cell->sgsn_bvc[i]);
+				cell->sgsn_bvc[i] = NULL;
+			}
+		}
 		return gbproxy_cell_free(cell);
+	}
 
 	/* we could also be a SGSN-side BVC */
 	for (i = 0; i < ARRAY_SIZE(cell->sgsn_bvc); i++) {
