@@ -29,6 +29,7 @@ include::./common/chapters/gb-ns2-configuration.adoc[]
 
 include::./common/chapters/gb-ns2-configuration-timer.adoc[]
 
+include::./common/chapters/gb-ns2-maintenance.adoc[]
 
 include::./common/chapters/control_if.adoc[]
 
