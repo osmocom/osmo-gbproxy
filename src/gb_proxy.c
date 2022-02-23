@@ -348,6 +348,8 @@ static struct gbproxy_bvc *gbproxy_select_sgsn_bvc(struct gbproxy_config *cfg, s
 			continue;
 		if (sgsn->nse != sgsn_bvc->nse)
 			continue;
+		if (!bssgp_bvc_fsm_is_unblocked(sgsn_bvc->fi))
+			continue;
 
 		return sgsn_bvc;
 	}
