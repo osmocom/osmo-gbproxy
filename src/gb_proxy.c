@@ -532,6 +532,9 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	}
 	}
 
+	if (rc < 0)
+		rate_ctr_inc(rate_ctr_group_get_ctr(bss_bvc->ctrg, GBPROX_PEER_CTR_FWD_FROM_BSS_ERR));
+
 	return 0;
 }
 
@@ -606,8 +609,12 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	default:
 		break;
 	}
-	return gbprox_relay2peer(msg, bss_bvc, bss_bvc->bvci);
+	rc = gbprox_relay2peer(msg, bss_bvc, bss_bvc->bvci);
 
+	if (rc < 0)
+		rate_ctr_inc(rate_ctr_group_get_ctr(bss_bvc->ctrg, GBPROX_PEER_CTR_FWD_FROM_SGSN_ERR));
+
+	return rc;
 }
 
 /***********************************************************************

@@ -39,11 +39,13 @@
 extern void *tall_sgsn_ctx;
 
 static const struct rate_ctr_desc bvc_ctr_description[] = {
-	[GBPROX_PEER_CTR_BLOCKED]	= { "blocked",	   "BVC Block                       " },
-	[GBPROX_PEER_CTR_UNBLOCKED]	= { "unblocked",   "BVC Unblock                     " },
-	[GBPROX_PEER_CTR_DROPPED]	= { "dropped",	   "BVC blocked, dropped packet     " },
-	[GBPROX_PEER_CTR_INV_NSEI]	= { "inv-nsei",	   "NSEI mismatch                   " },
-	[GBPROX_PEER_CTR_TX_ERR]	= { "tx-err",	   "NS Transmission error           " },
+	[GBPROX_PEER_CTR_BLOCKED]	    = { "blocked",	"BVC Block                       " },
+	[GBPROX_PEER_CTR_UNBLOCKED]	    = { "unblocked",	"BVC Unblock                     " },
+	[GBPROX_PEER_CTR_DROPPED]	    = { "dropped",	"BVC blocked, dropped packet     " },
+	[GBPROX_PEER_CTR_INV_NSEI]	    = { "inv-nsei",	"NSEI mismatch                   " },
+	[GBPROX_PEER_CTR_TX_ERR]	    = { "tx-err",	"NS Transmission error           " },
+	[GBPROX_PEER_CTR_FWD_FROM_SGSN_ERR] = { "fwd-sgsn-err",	"Forwarding data from SGSN failed" },
+	[GBPROX_PEER_CTR_FWD_FROM_BSS_ERR]  = { "fwd-bss-err",	"Forwarding data from BSS failed " },
 };
 
 osmo_static_assert(ARRAY_SIZE(bvc_ctr_description) == GBPROX_PEER_CTR_LAST, everything_described);
