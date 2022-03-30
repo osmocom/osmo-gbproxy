@@ -1,1 +1,2 @@
 #component	what		description / commit summary line
+configure.ac	libosmocore	depend on next released libosmocore after 1.6.0 with (struct bssgp_bvc_fsm_ops)->reset_ack_notification

@@ -848,6 +848,7 @@ static void sgsn_sig_bvc_reset_notif(uint16_t nsei, uint16_t bvci, const struct 
 
 const struct bssgp_bvc_fsm_ops sgsn_sig_bvc_fsm_ops = {
 	.reset_notification = sgsn_sig_bvc_reset_notif,
+	.reset_ack_notification = sgsn_sig_bvc_reset_notif,
 };
 
 /***********************************************************************
