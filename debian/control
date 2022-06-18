@@ -13,8 +13,8 @@ Build-Depends: debhelper (>=9),
                libosmocore-dev (>= 1.6.0),
                osmo-gsm-manuals-dev (>= 1.2.0)
 Standards-Version: 3.9.8
-Vcs-Git: git://git.osmocom.org/osmo-gbproxy.git
-Vcs-Browser: https://git.osmocom.org/osmo-gbproxy
+Vcs-Git: https://gitea.osmocom.org/cellular-infrastructure/osmo-gbproxy
+Vcs-Browser: https://gitea.osmocom.org/cellular-infrastructure/osmo-gbproxy
 Homepage: https://projects.osmocom.org/projects/osmo-gbproxy
 
 Package: osmo-gbproxy
