@@ -1,3 +1,27 @@
+osmo-gbproxy (1:0.3.0) unstable; urgency=medium
+
+  [ Daniel Willmann ]
+  * gbproxy: Fix error return value
+  * gbproxy: Also try to route STATUS messages with truncated PDU in error
+  * gbproxy: Fix crash when FLUSH_LL_ACK does not contain a BVCI IE
+  * gbproxy_peer: Free all related BVCs if the cell is freed
+  * gbproxy: Only route to an SGSN if the BVC is not blocked
+  * gbproxy_peer: Use designated initializers for bvc_ctr_description
+  * gbproxy_peer: Add rate counters when forwarding packets fail
+  * gbproxy: Ensure PtP-BVCs are reset when we reset the SGSN SIG-BVC
+
+  [ Pau Espin Pedrol ]
+  * Drop unneeded ax_check_compile_flag.m4
+
+  [ Alexander Couzens ]
+  * docs: usermanual: reorder gb/ns2 chapter to keep all ns2 part together
+  * docs: usermanual: add new chapter gb-ns2-maintenance
+
+  [ Harald Welte ]
+  * update git URLs (git -> https; gitea)
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Wed, 29 Jun 2022 11:54:09 +0200
+
 osmo-gbproxy (1:0.2.0) unstable; urgency=medium
 
   [ Pau Espin Pedrol ]
