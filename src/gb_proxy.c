@@ -1414,7 +1414,8 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 	struct gbproxy_bvc *sgsn_bvc;
 	struct tlv_parsed tp[2];
 	int data_len;
-	uint16_t bvci;
+	uint16_t bvci, bvci2;
+	uint32_t tlli;
 	char log_pfx[32];
 	int rc = 0;
 	int i;
@@ -1483,17 +1484,51 @@ static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		rc = osmo_fsm_inst_dispatch(sgsn_bvc->fi, BSSGP_BVCFSM_E_RX_UNBLOCK_ACK, msg);
 		break;
 	case BSSGP_PDUT_FLUSH_LL:
-		/* TODO: If new BVCI is on different NSE we should remove the new BVCI so the
-		 * message is interpreted as a request to delete the PDUs, not forward them.
-		 * If we negotiate Inter-NSE re-routing or LCS-procedures we can also
+		/* TODO: If we negotiate Inter-NSE re-routing or LCS-procedures we can also
 		 * add the NSEI TLV to trigger re-routing the PDUs */
 		/* simple case: BVCI IE is mandatory */
 		bvci = ntohs(tlvp_val16_unal(&tp[0], BSSGP_IE_BVCI));
 		sgsn_bvc = gbproxy_bvc_by_bvci(nse, bvci);
 		if (!sgsn_bvc)
 			goto err_no_bvc;
-		if (sgsn_bvc->cell && sgsn_bvc->cell->bss_bvc)
+
+		/* bvc is not valid */
+		if (!sgsn_bvc->cell || !sgsn_bvc->cell->bss_bvc) {
+			rc = -EINVAL;
+			break;
+		}
+
+		/* When both the old and new BVCI is present:
+		 * If old & new BVCI is on the same NSEI, forward message as is,
+		 * otherwise remove new BVCI. */
+		if (TLVP_PRESENT(&tp[1], BSSGP_IE_BVCI)) {
+			struct gbproxy_bvc *bvc2;
+			struct msgb *flush;
+
+			bvci2 = ntohs(tlvp_val16_unal(&tp[1], BSSGP_IE_BVCI));
+			bvc2 = gbproxy_bvc_by_bvci(nse, bvci2);
+
+			/* it's the same NSEI, we can pass the message as is */
+			if (bvc2->nse == sgsn_bvc->nse) {
+				rc = gbprox_relay2peer(msg, sgsn_bvc->cell->bss_bvc, ns_bvci);
+				break;
+			}
+
+			tlli = osmo_load32be(TLVP_VAL(&tp[0], BSSGP_IE_TLLI));
+			/* build a new message in order to drop the old one */
+			flush = bssgp2_enc_flush_ll(tlli, bvci, NULL, NULL);
+			if (!flush) {
+				/* TODO: error message */
+				rc = -ENOMEM;
+				break;
+			}
+
+			DEBUGP(DGPRS, "NSE(%05u/%s)-BVC(%05u/??) proxying to NSE(%05u/%s)\n", msgb_nsei(msg),
+			       !nse->sgsn_facing ? "SGSN" : "BSS", ns_bvci, nse->nsei, nse->sgsn_facing ? "SGSN" : "BSS");
+			rc = bssgp2_nsi_tx_ptp(nse->cfg->nsi, nse->nsei, ns_bvci, flush, tlli);
+		} else {
 			rc = gbprox_relay2peer(msg, sgsn_bvc->cell->bss_bvc, ns_bvci);
+		}
 		break;
 	case BSSGP_PDUT_DUMMY_PAGING_PS:
 		/* Routing area is optional in dummy paging and we have nothing else to go by
