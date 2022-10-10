@@ -529,6 +529,34 @@ DEFUN(show_gbproxy_bvc, show_gbproxy_bvc_cmd, "show gbproxy bvc (bss|sgsn) [stat
 	return CMD_SUCCESS;
 }
 
+DEFUN(show_gbproxy_bvc_nsei, show_gbproxy_bvc_nsei_cmd, "show gbproxy bvc (bss|sgsn) nsei <0-65535> [stats]",
+       SHOW_STR GBPROXY_STR
+       "Show BSSGP Virtual Connections\n"
+       "Display BSS-side BVCs\n"
+       "Display SGSN-side BVCs\n"
+       "Limit display to cells from an NSE\n"
+       "NSEI to use\n"
+       "Show statistics\n")
+{
+	struct gbproxy_nse *nse;
+	bool show_stats = argc >= 3;
+	int i;
+	uint16_t nsei = atoi(argv[1]);
+
+	if (!strcmp(argv[0], "bss")) {
+		hash_for_each(g_cfg->bss_nses, i, nse, list) {
+			if (nse->nsei == nsei)
+				gbproxy_vty_print_nse(vty, nse, show_stats);
+		}
+	} else {
+		hash_for_each(g_cfg->sgsn_nses, i, nse, list) {
+			if (nse->nsei == nsei)
+				gbproxy_vty_print_nse(vty, nse, show_stats);
+		}
+	}
+	return CMD_SUCCESS;
+}
+
 DEFUN(show_gbproxy_cell, show_gbproxy_cell_cmd, "show gbproxy cell [stats]",
        SHOW_STR GBPROXY_STR
        "Show GPRS Cell Information\n"
@@ -540,6 +568,26 @@ DEFUN(show_gbproxy_cell, show_gbproxy_cell_cmd, "show gbproxy cell [stats]",
 
 	hash_for_each(g_cfg->cells, i, cell, list)
 		gbproxy_vty_print_cell(vty, cell, show_stats);
+
+	return CMD_SUCCESS;
+}
+
+DEFUN(show_gbproxy_cell_nsei, show_gbproxy_cell_nsei_cmd, "show gbproxy cell nsei <0-65535> [stats]",
+       SHOW_STR GBPROXY_STR
+       "Show GPRS Cell Information\n"
+       "Limit display to cells from an NSE\n"
+       "NSEI to use\n"
+       "Show statistics\n")
+{
+	struct gbproxy_cell *cell;
+	bool show_stats = argc >= 2;
+	int i;
+	uint16_t nsei = atoi(argv[0]);
+
+	hash_for_each(g_cfg->cells, i, cell, list) {
+		if (cell->bss_bvc->nse->nsei == nsei)
+			gbproxy_vty_print_cell(vty, cell, show_stats);
+	}
 
 	return CMD_SUCCESS;
 }
@@ -722,7 +770,9 @@ DEFUN_HIDDEN(sgsn_pool_nsf_normal, sgsn_pool_nsf_normal_cmd,
 int gbproxy_vty_init(void)
 {
 	install_element_ve(&show_gbproxy_bvc_cmd);
+	install_element_ve(&show_gbproxy_bvc_nsei_cmd);
 	install_element_ve(&show_gbproxy_cell_cmd);
+	install_element_ve(&show_gbproxy_cell_nsei_cmd);
 	install_element_ve(&show_gbproxy_tlli_cache_cmd);
 	install_element_ve(&show_gbproxy_imsi_cache_cmd);
 	install_element_ve(&show_nri_all_cmd);
