@@ -278,7 +278,7 @@ static struct gbproxy_sgsn *gbproxy_select_sgsn(struct gbproxy_config *cfg, cons
 			return NULL;
 		}
 
-		LOGPSGSN(sgsn, LOGL_INFO, "Pooling disabled, using first available SGSN\n");
+		LOGPSGSN(sgsn, LOGL_DEBUG, "Pooling disabled, using first available SGSN\n");
 	} else {
 		/* Pooling is enabled, try to use the NRI for routing to an SGSN
 		 * See 3GPP TS 23.236 Ch. 5.3.2 */

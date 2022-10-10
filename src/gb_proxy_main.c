@@ -237,12 +237,14 @@ static struct log_info_cat gprs_categories[] = {
 	[DGPRS] = {
 		.name = "DGPRS",
 		.description = "GPRS Packet Service",
-		.enabled = 1, .loglevel = LOGL_DEBUG,
+		.enabled = 1,
+		.loglevel = LOGL_NOTICE,
 	},
 	[DOBJ] = {
 		.name = "DOBJ",
 		.description = "GbProxy object allocation/release",
 		.enabled = 1,
+		.loglevel = LOGL_NOTICE,
 		.color = "\033[38;5;121m"
 	},
 };
