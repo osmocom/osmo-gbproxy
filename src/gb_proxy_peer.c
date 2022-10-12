@@ -137,8 +137,7 @@ void gbproxy_bvc_free(struct gbproxy_bvc *bvc)
 }
 
 /*! remove BVCs on NSE specified by NSEI.
- *  \param[in] cfg proxy in which we operate
- *  \param[in] nsei NS entity in which we should clean up
+ *  \param[in] nse NS entity in which we should clean up
  *  \param[in] bvci if 0: remove all PTP BVCs; if != 0: BVCI of the single BVC to clean up */
 int gbproxy_cleanup_bvcs(struct gbproxy_nse *nse, uint16_t bvci)
 {
