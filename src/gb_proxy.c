@@ -80,9 +80,6 @@ static const struct rate_ctr_group_desc global_ctrg_desc = {
 	.class_id = OSMO_STATS_CLASS_GLOBAL,
 };
 
-static int gbprox_relay2peer(struct msgb *old_msg, struct gbproxy_bvc *bvc,
-			     uint16_t ns_bvci);
-
 int tx_status(struct gbproxy_nse *nse, uint16_t ns_bvci, enum gprs_bssgp_cause cause, const uint16_t *bvci, const struct msgb *old_msg)
 {
 	int rc;
