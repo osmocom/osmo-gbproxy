@@ -341,7 +341,7 @@ int main(int argc, char **argv)
 
 	/* Start control interface after getting config for
 	 * ctrl_vty_get_bind_addr() */
-	ctrl = ctrl_interface_setup_dynip(gbcfg, ctrl_vty_get_bind_addr(), OSMO_CTRL_PORT_GBPROXY, NULL);
+	ctrl = ctrl_interface_setup(gbcfg, OSMO_CTRL_PORT_GBPROXY, NULL);
 	if (!ctrl) {
 		LOGP(DGPRS, LOGL_FATAL, "Failed to create CTRL interface.\n");
 		exit(1);
