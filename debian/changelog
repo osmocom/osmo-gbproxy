@@ -1,3 +1,29 @@
+osmo-gbproxy (1:0.4.0) unstable; urgency=medium
+
+  [ Vadim Yanitskiy ]
+  * configure.ac: do not require unused dlsym/dlopen
+
+  [ Max ]
+  * Set working directory in systemd service file
+  * Drop forward declaration of gbprox_relay2peer()
+  * ctrl: take both address and port from vty config
+
+  [ Alexander Couzens ]
+  * implement LL DISCARD with second BVCI
+
+  [ Daniel Willmann ]
+  * gbproxy_vty: Add commands to list Cell/BVC of an NSE
+  * Improve log levels
+  * Fix obsolete documentation of function
+
+  [ Harald Welte ]
+  * manual: Use combined/merged gb-ns2 chapter
+
+  [ arehbein ]
+  * osmo-gbproxy: Transition to use of 'telnet_init_default'
+
+ -- Pau Espin Pedrol <pespin@sysmocom.de>  Tue, 07 Feb 2023 17:37:13 +0100
+
 osmo-gbproxy (1:0.3.0) unstable; urgency=medium
 
   [ Daniel Willmann ]

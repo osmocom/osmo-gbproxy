@@ -38,11 +38,11 @@ dnl use a defined standard across all builds and don't depend on compiler defaul
 CFLAGS="$CFLAGS -std=gnu11"
 
 dnl checks for libraries
-PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMOCTRL, libosmoctrl >= 1.7.0)
-PKG_CHECK_MODULES(LIBOSMOGB, libosmogb >= 1.7.0)
+PKG_CHECK_MODULES(LIBOSMOCORE, libosmocore >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMOGSM, libosmogsm >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMOVTY, libosmovty >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMOCTRL, libosmoctrl >= 1.8.0)
+PKG_CHECK_MODULES(LIBOSMOGB, libosmogb >= 1.8.0)
 
 dnl checks for header files
 AC_HEADER_STDC
