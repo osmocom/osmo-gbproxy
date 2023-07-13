@@ -532,6 +532,8 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	if (rc < 0)
 		rate_ctr_inc(rate_ctr_group_get_ctr(bss_bvc->ctrg, GBPROX_PEER_CTR_FWD_FROM_BSS_ERR));
 
+	/* avoid a dangling pointer from heap to stack (see above "hack" to set it to &tp) */
+	msgb_bcid(msg) = 0;
 	return 0;
 }
 
