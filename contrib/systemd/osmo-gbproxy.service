@@ -9,8 +9,11 @@ ExecStart=/usr/bin/osmo-gbproxy -c /etc/osmocom/osmo-gbproxy.cfg
 StateDirectory=osmocom
 WorkingDirectory=%S/osmocom
 Restart=always
+User=osmocom
+Group=osmocom
 RestartSec=2
 RestartPreventExitStatus=1
+AmbientCapabilities=CAP_NET_RAW
 
 [Install]
 WantedBy=multi-user.target
