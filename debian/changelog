@@ -1,3 +1,15 @@
+osmo-gbproxy (1:0.5.0) unstable; urgency=medium
+
+  [ Andreas Eversberg ]
+  * Use uniform log format for default config files
+
+  [ Oliver Smith ]
+  * contrib: remove rpm spec file
+  * contrib/systemd: run as osmocom user
+  * debian/osmo-gbproxy.init: delete
+
+ -- Oliver Smith <osmith@sysmocom.de>  Thu, 25 Jul 2024 09:25:28 +0200
+
 osmo-gbproxy (1:0.4.1) unstable; urgency=medium
 
   [ Vadim Yanitskiy ]
