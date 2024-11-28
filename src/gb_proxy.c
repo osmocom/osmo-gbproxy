@@ -537,6 +537,8 @@ static int gbprox_rx_ptp_from_bss(struct gbproxy_nse *nse, struct msgb *msg, uin
 	return 0;
 }
 
+static int gbprox_rx_sig_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, uint16_t ns_bvci);
+
 /* Receive an incoming PTP message from a SGSN-side NS-VC */
 static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, uint16_t ns_bvci)
 {
@@ -572,6 +574,12 @@ static int gbprox_rx_ptp_from_sgsn(struct gbproxy_nse *nse, struct msgb *msg, ui
 		     log_pfx, pdut_name);
 		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_GLOB_CTR_INV_BVCI));
 		return tx_status(nse, ns_bvci, BSSGP_CAUSE_UNKNOWN_BVCI, &ns_bvci, msg);
+	}
+
+	if (bgph->pdu_type == BSSGP_PDUT_BVC_RESET_ACK) {
+		LOGPBVC(sgsn_bvc, LOGL_NOTICE, "Rx %s on PTP BVC, passing to signalling layer. This is a spec violation\n", pdut_name);
+		rate_ctr_inc(rate_ctr_group_get_ctr(nse->cfg->ctrg, GBPROX_PEER_CTR_PTP_RESET_HACK));
+		return gbprox_rx_sig_from_sgsn(nse, msg, 0);
 	}
 
 	if (!bssgp_bvc_fsm_is_unblocked(sgsn_bvc->fi)) {
